@@ -30,6 +30,14 @@ Demo accounts (password `demo1234`):
 | Team Member (assigned work only) | team@demo.events |
 | Client (portal only) | client@demo.events |
 
+### Test on a phone (same Wi-Fi as your computer)
+
+```bash
+pnpm build
+COOKIE_SECURE=false SHOW_DEMO_ACCOUNTS=true pnpm start:lan   # listens on 0.0.0.0:3000
+```
+Find your computer's local IP (macOS: `ipconfig getifaddr en0`, Windows: `ipconfig`) and open `http://<IP>:3000` in Safari on the iPhone. `COOKIE_SECURE=false` is needed because the LAN URL is plain http; never use it on a public deployment.
+
 ## 2. Architecture
 
 ```

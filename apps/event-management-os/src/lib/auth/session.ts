@@ -37,7 +37,8 @@ export async function verifySession(token?: string | null): Promise<SessionPaylo
 export const sessionCookieOptions = {
   httpOnly: true,
   sameSite: 'lax' as const,
-  secure: process.env.NODE_ENV === 'production',
+  // Set COOKIE_SECURE=false only to test over plain http on a local network (e.g. from a phone).
+  secure: process.env.COOKIE_SECURE ? process.env.COOKIE_SECURE === 'true' : process.env.NODE_ENV === 'production',
   path: '/',
   maxAge: MAX_AGE,
 }
