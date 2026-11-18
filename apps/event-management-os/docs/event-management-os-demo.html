@@ -1,0 +1,594 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Event Management OS — Démo</title>
+<style>
+:root{--coral:#F07F73;--coral-l:#FCE9E6;--coral-d:#B85650;--white:#fff;--off:#FAF9F7;--beige:#F5F1ED;--gray:#F3F4F6;--ink:#252525;--muted:#777;--line:#ECEBE8;--line2:#E2E0DC;--green:#047857;--green-bg:#ECFDF5;--amber:#B45309;--amber-bg:#FFFBEB;--blue:#0369A1;--blue-bg:#F0F9FF;--violet:#6D28D9;--violet-bg:#F5F3FF;--red:#B91C1C;--red-bg:#FEF2F2;--shadow:0 1px 2px rgba(37,37,37,.04);--pop:0 12px 32px -8px rgba(37,37,37,.16)}
+*{box-sizing:border-box}html,body{margin:0}body{font:14px/1.45 -apple-system,"Segoe UI",Inter,Roboto,sans-serif;color:var(--ink);background:var(--off);-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}a{color:inherit;text-decoration:none}
+.app{display:flex;min-height:100vh}
+aside{width:244px;flex-shrink:0;background:#fff;border-right:1px solid var(--line);position:sticky;top:0;height:100vh;display:flex;flex-direction:column;transition:width .2s}
+aside.collapsed{width:68px}aside.collapsed .lbl,aside.collapsed .grp,aside.collapsed .brand-txt{display:none}
+.brand{display:flex;gap:10px;align-items:center;height:56px;padding:0 16px;border-bottom:1px solid var(--line)}
+.mark{width:30px;height:30px;border-radius:9px;background:var(--coral);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;flex-shrink:0}
+.brand b{display:block;font-size:14px}.brand small{display:block;font-size:11px;color:var(--muted)}
+nav{flex:1;overflow:auto;padding:10px}
+.grp{font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#999;margin:14px 10px 4px}
+.nav{display:flex;align-items:center;gap:10px;height:36px;padding:0 10px;border-radius:8px;color:#555;font-weight:500;font-size:13px;cursor:pointer;position:relative;border:0;background:none;width:100%;text-align:left}
+.nav:hover{background:var(--gray);color:var(--ink)}.nav.on{background:var(--coral-l);color:var(--coral-d)}
+.nav.on:before{content:"";position:absolute;left:-10px;top:8px;bottom:8px;width:3px;border-radius:0 3px 3px 0;background:var(--coral)}
+.ico{width:18px;text-align:center;flex-shrink:0;font-size:15px}
+.side-foot{border-top:1px solid var(--line);padding:10px}
+.main{flex:1;min-width:0;display:flex;flex-direction:column}
+header.top{position:sticky;top:0;z-index:20;height:56px;display:flex;align-items:center;gap:10px;padding:0 22px;background:rgba(255,255,255,.88);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.crumb{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.crumb b{color:var(--ink);font-weight:600}
+.sp{flex:1}
+.search{display:flex;align-items:center;gap:8px;height:32px;width:240px;padding:0 10px;border:1px solid var(--line);border-radius:8px;background:var(--off);color:var(--muted);cursor:pointer;font-size:13px}
+.btn{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 13px;border-radius:8px;border:1px solid var(--line2);background:#fff;font-weight:500;font-size:13px;cursor:pointer;white-space:nowrap;box-shadow:var(--shadow)}
+.btn:hover{background:var(--off)}.btn.p{background:var(--coral);border-color:var(--coral-d);color:#fff}.btn.p:hover{background:var(--coral-d)}
+.btn.g{border-color:transparent;background:none;box-shadow:none}.btn.g:hover{background:var(--gray)}.btn.sm{height:28px;padding:0 9px;font-size:12px}.btn.d{color:var(--red);border-color:#FECACA}
+.btn:disabled{opacity:.5;pointer-events:none}
+.icon-btn{width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;border-radius:8px;border:0;background:none;cursor:pointer;position:relative;font-size:16px}
+.icon-btn:hover{background:var(--gray)}.dot{position:absolute;top:2px;right:2px;min-width:16px;height:16px;border-radius:9px;background:var(--coral);color:#fff;font-size:10px;font-weight:600;display:flex;align-items:center;justify-content:center;border:2px solid #fff}
+.avatar{width:30px;height:30px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:600;flex-shrink:0}
+.avatar.xs{width:20px;height:20px;font-size:9px}
+.content{padding:22px 26px;max-width:1440px;width:100%;margin:0 auto}
+h1{font-size:22px;margin:0;letter-spacing:-.01em}.eyebrow{font-size:12px;color:var(--coral-d);font-weight:500;margin-bottom:4px}.desc{color:var(--muted);margin:4px 0 0}
+.head{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:18px}.actions{display:flex;gap:8px;flex-wrap:wrap}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
+.kpi{background:#fff;border:1px solid var(--line);border-radius:12px;padding:13px 15px;box-shadow:var(--shadow);cursor:pointer}.kpi:hover{border-color:var(--line2)}
+.kpi span{font-size:12.5px;color:var(--muted);font-weight:500}.kpi b{display:block;font-size:22px;margin-top:4px;letter-spacing:-.02em}.kpi small{color:var(--muted);font-size:12px}
+.kpi.warn b{color:var(--red)}
+.grid{display:grid;grid-template-columns:2fr 1fr;gap:16px}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.card{background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);min-width:0}
+.card-h{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line)}.card-h h3{margin:0;font-size:14px}.card-h small{color:var(--muted);font-size:12px}
+.card-b{padding:16px}
+.link{font-size:12px;color:var(--muted);cursor:pointer;background:none;border:0}.link:hover{color:var(--coral-d)}
+table{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
+th{text-align:left;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:#888;background:rgba(245,241,237,.6);padding:9px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:middle}tr.click{cursor:pointer}tr.click:hover td{background:var(--off)}
+th:first-child,td:first-child{padding-left:16px}.tw{overflow-x:auto}
+.t{font-weight:600}.sub{display:block;font-size:12px;color:var(--muted);font-weight:400}.num{font-variant-numeric:tabular-nums}.r{text-align:right}.muted{color:var(--muted)}
+.badge{display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 8px;border-radius:6px;font-size:11.5px;font-weight:500;white-space:nowrap}
+.badge i{width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.8}
+.b-gray{background:var(--gray);color:#666}.b-coral{background:var(--coral-l);color:var(--coral-d)}.b-green{background:var(--green-bg);color:var(--green)}.b-amber{background:var(--amber-bg);color:var(--amber)}.b-blue{background:var(--blue-bg);color:var(--blue)}.b-violet{background:var(--violet-bg);color:var(--violet)}.b-red{background:var(--red-bg);color:var(--red)}
+.prog{display:flex;align-items:center;gap:8px}.bar{height:6px;flex:1;min-width:60px;background:var(--gray);border-radius:9px;overflow:hidden}.bar i{display:block;height:100%;background:var(--coral);border-radius:9px}.bar i.full{background:#10B981}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:10px 12px;border-bottom:1px solid var(--line)}
+.inp,.sel{height:34px;padding:0 10px;border:1px solid var(--line2);border-radius:8px;background:#fff;outline:none;min-width:0}
+.inp:focus,.sel:focus,textarea:focus{border-color:var(--coral);box-shadow:0 0 0 3px rgba(240,127,115,.15)}
+textarea{width:100%;padding:8px 10px;border:1px solid var(--line2);border-radius:8px;outline:none;min-height:70px;resize:vertical}
+.seg{display:inline-flex;background:var(--off);border:1px solid var(--line);border-radius:8px;padding:2px}.seg button{border:0;background:none;padding:4px 10px;border-radius:6px;font-size:12px;cursor:pointer;color:var(--muted)}.seg button.on{background:#fff;color:var(--ink);font-weight:600;box-shadow:var(--shadow)}
+.board{display:flex;gap:12px;overflow-x:auto;padding:12px}
+.col{width:260px;flex-shrink:0;background:rgba(245,241,237,.6);border:1px solid var(--line);border-radius:12px;display:flex;flex-direction:column}
+.col.over{background:var(--coral-l);border-color:rgba(240,127,115,.4)}
+.col-h{display:flex;justify-content:space-between;padding:11px 12px 7px;font-size:13px;font-weight:600}.col-h small{color:var(--muted);font-weight:400}
+.col-b{padding:0 8px 8px;display:flex;flex-direction:column;gap:8px;min-height:80px}
+.kcard{background:#fff;border:1px solid var(--line);border-radius:9px;padding:10px;box-shadow:var(--shadow);cursor:grab}.kcard:hover{box-shadow:var(--pop)}.kcard.drag{opacity:.4}
+.kcard .meta{display:flex;justify-content:space-between;align-items:center;margin-top:8px;font-size:12px}
+.empty{padding:28px;text-align:center;color:var(--muted);font-size:13px}
+.list li{list-style:none;display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--line)}.list{margin:0;padding:0}.list li:last-child{border-bottom:0}
+.chk{width:18px;height:18px;border-radius:5px;border:1.5px solid var(--line2);background:#fff;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px}
+.chk.on{background:#10B981;border-color:#10B981}.done{text-decoration:line-through;color:var(--muted)}
+.overdue{color:var(--red);font-weight:600}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:16px;overflow-x:auto}
+.tabs button{border:0;background:none;padding:9px 10px;font-weight:500;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px;cursor:pointer;white-space:nowrap}.tabs button.on{color:var(--ink);border-color:var(--coral)}
+dl.info{display:grid;grid-template-columns:repeat(3,1fr);gap:14px 20px;margin:0}dl.info dt{font-size:11.5px;color:var(--muted)}dl.info dd{margin:2px 0 0}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}.stat{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 14px}.stat span{font-size:11.5px;color:var(--muted)}.stat b{display:block;font-size:18px;margin-top:2px}
+.ref{font-size:11px;color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:1px 6px;background:#fff}
+.overlay{position:fixed;inset:0;background:rgba(37,37,37,.22);z-index:50;animation:fade .15s}
+.sheet{position:fixed;top:0;right:0;bottom:0;width:min(520px,100%);background:#fff;z-index:51;display:flex;flex-direction:column;box-shadow:var(--pop);animation:slide .2s ease-out}
+.sheet-h{padding:16px 20px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:flex-start}.sheet-h h2{margin:0;font-size:16px}.sheet-h p{margin:2px 0 0;color:var(--muted);font-size:13px}
+.sheet-b{flex:1;overflow:auto;padding:18px 20px}.sheet-f{padding:12px 20px;border-top:1px solid var(--line);background:var(--off);display:flex;justify-content:flex-end;gap:8px}
+.form{display:grid;grid-template-columns:1fr 1fr;gap:12px}.form label{display:block;font-size:12.5px;font-weight:500;color:#555;margin-bottom:5px}.form .w{grid-column:1/-1}.form .inp,.form .sel{width:100%}
+.err{color:var(--red);font-size:12px;margin-top:4px}
+.modal{position:fixed;left:50%;top:12vh;transform:translateX(-50%);width:min(560px,94vw);background:#fff;border-radius:14px;z-index:51;box-shadow:var(--pop);overflow:hidden;animation:pop .15s}
+.modal input{width:100%;border:0;border-bottom:1px solid var(--line);padding:14px 16px;font-size:15px;outline:none}
+.res{max-height:50vh;overflow:auto;padding:6px}.res button{display:block;width:100%;text-align:left;border:0;background:none;padding:8px 10px;border-radius:8px;cursor:pointer}.res button:hover{background:var(--gray)}.res small{color:var(--muted)}.res .rt{font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:#999;padding:8px 10px 2px}
+.menu{position:absolute;top:44px;right:0;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:var(--pop);padding:6px;min-width:220px;z-index:40;animation:pop .12s}
+.menu button{display:flex;gap:8px;width:100%;text-align:left;border:0;background:none;padding:7px 10px;border-radius:8px;cursor:pointer;font-size:13px}.menu button:hover{background:var(--gray)}.menu .mh{font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:#999;padding:6px 10px 4px}
+.toast{position:fixed;bottom:20px;right:20px;z-index:60;background:#fff;border:1px solid var(--line);box-shadow:var(--pop);border-radius:12px;padding:11px 14px;font-size:13px;display:flex;gap:8px;align-items:center;animation:pop .15s;max-width:380px}
+.toast.e{border-color:#FECACA}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:var(--line)}.cal div.d{background:#fff;min-height:104px;padding:6px}.cal div.d.o{background:var(--off)}.cal div.d.over{background:var(--coral-l)}
+.cal .n{font-size:12px;color:#666;display:inline-flex;width:22px;height:22px;align-items:center;justify-content:center;border-radius:50%}.cal .n.today{background:var(--coral);color:#fff;font-weight:600}
+.chip{display:block;font-size:11.5px;padding:2px 6px;border-radius:5px;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:grab}
+.dow{display:grid;grid-template-columns:repeat(7,1fr);background:rgba(245,241,237,.6);font-size:11px;color:#888;text-align:center;text-transform:uppercase;letter-spacing:.05em}.dow div{padding:8px}
+.agenda{display:grid;grid-template-columns:repeat(7,1fr)}.agenda>div{border-right:1px solid var(--line);padding:10px;min-height:140px}.agenda>div:last-child{border-right:0}.agenda .today{background:rgba(252,233,230,.35)}
+.ag-d{font-size:11px;text-transform:uppercase;color:var(--muted);font-weight:500}.ag-n{font-size:18px;font-weight:600}
+.ag-i{font-size:11.5px;display:flex;gap:6px;margin-top:5px;line-height:1.3;cursor:pointer}.ag-i i{width:6px;height:6px;border-radius:50%;margin-top:4px;flex-shrink:0}
+.lines input{width:100%;border:1px solid transparent;border-radius:6px;padding:5px 6px;background:none}.lines input:hover{border-color:var(--line)}.lines input:focus{border-color:var(--coral);outline:none;background:#fff}
+.totals{max-width:300px;margin-left:auto}.totals div{display:flex;justify-content:space-between;padding:3px 0}.totals .gt{border-top:1.5px solid var(--ink);margin-top:6px;padding-top:8px;font-weight:700;font-size:16px}
+.banner{background:var(--coral-l);color:var(--coral-d);font-size:12.5px;padding:7px 14px;text-align:center}
+.portal{max-width:720px;margin:0 auto}
+.hero{background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden;margin-bottom:16px}.hero .in{padding:20px;background:radial-gradient(circle at 20% 0,var(--coral-l),transparent 60%)}
+.hero .tri{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid var(--line);text-align:center}.hero .tri div{padding:12px;border-right:1px solid var(--line)}.hero .tri div:last-child{border-right:0}.hero .tri b{font-size:18px;display:block}.hero .tri small{color:var(--muted);font-size:11px}
+.pills{display:flex;gap:6px;overflow-x:auto;margin-bottom:14px}.pills button{border:1px solid var(--line);background:#fff;border-radius:99px;padding:6px 12px;font-size:13px;cursor:pointer;white-space:nowrap;color:var(--muted)}.pills button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.mobile-only{display:none}
+@keyframes fade{from{opacity:0}}@keyframes slide{from{transform:translateX(30px);opacity:0}}@keyframes pop{from{transform:translate(var(--tx,0),-4px) scale(.98);opacity:0}}
+.modal{--tx:-50%}
+@media (max-width:1100px){.grid,.grid2{grid-template-columns:1fr}.kpis,.stats{grid-template-columns:repeat(2,1fr)}dl.info{grid-template-columns:1fr 1fr}}
+@media (max-width:760px){aside{position:fixed;z-index:45;transform:translateX(-100%);transition:transform .2s;width:260px!important}aside.open{transform:none;box-shadow:var(--pop)}aside .lbl,aside .grp,aside .brand-txt{display:block!important}
+.mobile-only{display:inline-flex}.search{width:auto}.search .lbl2{display:none}.content{padding:16px}header.top{padding:0 12px}.agenda{grid-template-columns:1fr}.agenda>div{border-right:0;border-bottom:1px solid var(--line);min-height:auto}.form{grid-template-columns:1fr}dl.info{grid-template-columns:1fr}.cal div.d{min-height:70px}.chip{font-size:10px}}
+</style>
+</head>
+<body>
+<div class="banner">Démo autonome : toutes les données sont fictives et enregistrées uniquement dans ce navigateur. <button class="link" data-a="reset" style="color:var(--coral-d);text-decoration:underline">Réinitialiser la démo</button></div>
+<div id="root"></div>
+<script>
+'use strict'
+/* ───────────── Utilities ───────────── */
+const $ = (s) => document.querySelector(s)
+const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
+const uid = () => Math.random().toString(36).slice(2, 10)
+const DAY = 86400000
+const today0 = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d }
+const addD = (n, h = 0) => new Date(today0().getTime() + n * DAY + h * 3600000).toISOString()
+const fmtD = (d, o = { day: 'numeric', month: 'short', year: 'numeric' }) => (d ? new Intl.DateTimeFormat('fr-FR', o).format(new Date(d)) : '—')
+const fmtDT = (d) => (d ? new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).format(new Date(d)) : '—')
+const eur = (n, compact) => (n == null ? '—' : new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', notation: compact ? 'compact' : 'standard', maximumFractionDigits: compact ? 1 : 0 }).format(n))
+const sameDay = (a, b) => new Date(a).toDateString() === new Date(b).toDateString()
+const daysUntil = (d) => Math.round((new Date(new Date(d).toDateString()) - today0()) / DAY)
+const norm = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\b(sarl|sas|sa|ltd|llc|inc|fictitious)\b/g, ' ').replace(/[^a-z0-9]+/g, ' ').trim()
+const initials = (n) => n.split(/\s+/).slice(0, 2).map((p) => p[0]).join('').toUpperCase()
+const toDateInput = (d) => (d ? new Date(new Date(d).getTime() - new Date(d).getTimezoneOffset() * 60000).toISOString().slice(0, 10) : '')
+
+/* ───────────── Options ───────────── */
+const O = {
+  stage: [['NEW', 'Nouveau', 'blue'], ['QUALIF', 'Qualification', 'violet'], ['CONTACT', 'Contacté', 'blue'], ['MEETING', 'RDV planifié', 'amber'], ['PROPOSAL', 'Proposition', 'coral'], ['NEGO', 'Négociation', 'amber'], ['WON', 'Gagné', 'green'], ['LOST', 'Perdu', 'red']],
+  prio: [['LOW', 'Basse', 'gray'], ['MEDIUM', 'Moyenne', 'blue'], ['HIGH', 'Haute', 'amber'], ['URGENT', 'Urgente', 'red']],
+  pstatus: [['PLANNING', 'Planification', 'blue'], ['CONFIRMED', 'Confirmé', 'violet'], ['IN_PROGRESS', 'En cours', 'amber'], ['COMPLETED', 'Terminé', 'green'], ['CANCELLED', 'Annulé', 'red']],
+  ptype: [['WEDDING', 'Mariage', 'coral'], ['BIRTHDAY', 'Anniversaire', 'amber'], ['PRIVATE', 'Événement privé', 'violet'], ['CORPORATE', 'Corporate', 'blue'], ['TRAVEL', 'Séjour', 'green'], ['CONCIERGE', 'Conciergerie', 'gray']],
+  tstatus: [['TODO', 'À faire', 'gray'], ['IN_PROGRESS', 'En cours', 'blue'], ['WAITING', 'En attente', 'amber'], ['DONE', 'Terminé', 'green']],
+  sstatus: [['ACTIVE', 'Actif', 'green'], ['PREFERRED', 'Préféré', 'coral'], ['SUSPENDED', 'Suspendu', 'red']],
+  qstatus: [['DRAFT', 'Brouillon', 'gray'], ['SENT', 'Envoyé', 'blue'], ['APPROVED', 'Approuvé', 'green'], ['REJECTED', 'Refusé', 'red']],
+  source: ['Site web', 'Instagram', 'Recommandation', 'Partenaire', 'Salon', 'WhatsApp'],
+  service: ['Mariage', 'Anniversaire', 'Événement privé', 'Corporate', 'Séjour villa', 'Conciergerie'],
+  cats: ['Lieux', 'Hôtels', 'Villas', 'Traiteur', 'Décoration', 'Fleuristes', 'Photo', 'Vidéo', 'Animation', 'Son', 'Lumière', 'Mobilier', 'Transport', 'Beauté', 'Bien-être', 'Activités'],
+}
+const opt = (list, v) => list.find((o) => o[0] === v) || [v, v, 'gray']
+const badge = (list, v, dot = true) => { const o = opt(list, v); return `<span class="badge b-${o[2]}">${dot ? '<i></i>' : ''}${esc(o[1])}</span>` }
+const options = (list, v, empty) => (empty ? `<option value="">${empty}</option>` : '') + list.map((o) => (Array.isArray(o) ? `<option value="${o[0]}" ${o[0] === v ? 'selected' : ''}>${esc(o[1])}</option>` : `<option ${o === v ? 'selected' : ''}>${esc(o)}</option>`)).join('')
+
+/* ───────────── Seed (fictitious) ───────────── */
+const USERS = [
+  { id: 'u1', name: 'Alex Morgan', role: 'admin', title: 'Direction', color: '#F07F73' },
+  { id: 'u2', name: 'Sam Rivera', role: 'sales', title: 'Commercial', color: '#3BA3D9' },
+  { id: 'u3', name: 'Jordan Blake', role: 'pm', title: 'Chef de projet', color: '#E3A33B' },
+  { id: 'u4', name: 'Léa Martin', role: 'pm', title: 'Wedding planner', color: '#D9608A' },
+  { id: 'u5', name: 'Noah Bennett', role: 'team', title: 'Coordinateur', color: '#5B8DEF' },
+]
+const ROLES = { admin: { label: 'Administrateur', mods: '*' }, sales: { label: 'Commercial', mods: ['dashboard', 'leads', 'clients', 'quotes', 'tasks', 'calendar', 'suppliers'] }, pm: { label: 'Chef de projet', mods: ['dashboard', 'projects', 'tasks', 'calendar', 'suppliers', 'clients'] }, team: { label: "Membre d'équipe", mods: ['dashboard', 'projects', 'tasks', 'calendar'] } }
+const CHECKLIST = { WEDDING: ['Réunion de lancement', 'Brief créatif', 'Visite des lieux', 'Réserver photographe', 'Validation moodboard', 'Dégustation traiteur', 'Plan de table', 'Déroulé final'], CORPORATE: ['Réunion de lancement', 'Recueil des besoins', 'Fiche technique AV', 'Inscriptions participants', 'Confirmation intervenants'], TRAVEL: ['Vérifier passeports', 'Réserver hébergement', 'Organiser transferts', 'Itinéraire jour par jour'], DEFAULT: ['Réunion de lancement', 'Brief créatif', 'Budget prévisionnel', 'Envoyer proposition'] }
+
+function seed() {
+  const s = { seq: {}, users: USERS, clients: [], leads: [], projects: [], tasks: [], suppliers: [], services: [], quotes: [], meetings: [], approvals: [], activity: [], notifs: [] }
+  const ref = (p) => { s.seq[p] = (s.seq[p] || 0) + 1; return `${p}-${String(s.seq[p]).padStart(4, '0')}` }
+  s._ref = null
+  const cl = [['Sophie', 'Laurent', null, 'Paris', 'VIP'], ['James', 'Whitmore', null, 'Londres', 'ACTIVE'], ['Amira', 'Haddad', null, 'Dubaï', 'VIP'], ['Lucas', 'Moreau', 'Nordlight Tech', 'Lyon', 'ACTIVE'], ['Elena', 'Rossi', null, 'Milan', 'ACTIVE'], ['Daniel', 'Okafor', 'Helix Capital', 'Genève', 'VIP']]
+  cl.forEach(([f, l, c, city, st]) => s.clients.push({ id: uid(), ref: ref('CLI'), firstName: f, lastName: l, company: c, email: `${norm(f)}.${norm(l)}@example.com`, phone: '+33 6 00 00 00 00', city, status: st, notes: 'Client fictif.', created: addD(-60) }))
+  const su = [['Château des Lys', ['Lieux', 'Traiteur'], 'Provence', 5, 'PREFERRED'], ['Maison Fleurie', ['Fleuristes', 'Décoration'], 'Paris', 5, 'PREFERRED'], ['Lumière Studio', ['Photo', 'Vidéo'], 'Paris', 4, 'ACTIVE'], ['Saveurs & Co', ['Traiteur'], 'Lyon', 4, 'ACTIVE'], ['Nuit Blanche Sound', ['Son', 'Lumière'], 'Marseille', 4, 'ACTIVE'], ['Riviera Chauffeurs', ['Transport'], 'Nice', 5, 'ACTIVE'], ['Pixel Drone Films', ['Vidéo'], 'Lyon', 2, 'SUSPENDED'], ['Spa Sérénité', ['Bien-être'], 'Courchevel', 5, 'ACTIVE']]
+  su.forEach(([n, cats, city, rating, st]) => s.suppliers.push({ id: uid(), ref: ref('SUP'), name: n + ' (fictif)', cats, city, rating, status: st, fav: st === 'PREFERRED', email: `contact@${norm(n).replace(/ /g, '')}.example.com`, phone: '+33 4 00 00 00 00' }))
+  const sup = (n) => s.suppliers.find((x) => x.name.startsWith(n)).id
+  const sv = [['Organisation complète mariage', 'Planification', 0, 8500, 'forfait', null], ['Coordination jour J', 'Planification', 0, 1800, 'jour', null], ['Menu gastronomique', 'Traiteur', 85, 135, 'pers.', 'Saveurs'], ['Cocktail champagne', 'Traiteur', 22, 38, 'pers.', 'Saveurs'], ['Centre de table floral', 'Décoration', 65, 120, 'unité', 'Maison'], ['Arche florale cérémonie', 'Décoration', 900, 1650, 'unité', 'Maison'], ['DJ & sonorisation', 'Son', 1100, 1900, 'forfait', 'Nuit'], ['Photographe journée', 'Photo', 1600, 2800, 'jour', 'Lumière'], ['Film drone', 'Vidéo', 900, 1600, 'forfait', 'Pixel'], ['Berline avec chauffeur', 'Transport', 70, 120, 'heure', 'Riviera']]
+  sv.forEach(([n, c, cost, price, unit, sp]) => s.services.push({ id: uid(), name: n, cat: c, cost, price, unit, supplierId: sp ? sup(sp) : null }))
+  const pr = [['Mariage Laurent — Château des Lys', 0, 'WEDDING', 'IN_PROGRESS', 24, 85000, 'Provence', 'u4'], ['Sommet annuel Nordlight', 3, 'CORPORATE', 'CONFIRMED', 11, 120000, 'Lyon', 'u3'], ['40 ans Haddad — Yacht', 2, 'BIRTHDAY', 'PLANNING', 38, 45000, 'Monaco', 'u3'], ['Séjour Riviera Whitmore', 1, 'TRAVEL', 'CONFIRMED', 6, 32000, 'Saint-Tropez', 'u4'], ['Dîner de fiançailles Rossi', 4, 'PRIVATE', 'IN_PROGRESS', 4, 14000, 'Nice', 'u4']]
+  pr.forEach(([name, ci, type, status, start, budget, loc, mgr]) => {
+    const p = { id: uid(), ref: ref('PRJ'), name, clientId: s.clients[ci].id, type, status, start: addD(start), budget, location: loc, managerId: mgr, created: addD(-40) }
+    s.projects.push(p)
+    ;(CHECKLIST[type] || CHECKLIST.DEFAULT).forEach((t, i) => {
+      const due = Math.min(start - 1, -8 + i * 4)
+      s.tasks.push({ id: uid(), ref: ref('TSK'), title: t, projectId: p.id, assigneeId: i % 3 === 2 ? 'u5' : mgr, prio: i === 0 ? 'HIGH' : 'MEDIUM', status: due < -3 ? 'DONE' : due < 0 ? 'IN_PROGRESS' : 'TODO', due: addD(due, 17), auto: true })
+    })
+  })
+  ;[['Rappeler Amira pour les options yacht', 0, 'HIGH', 'u2'], ['Mettre à jour la grille tarifaire mariage', -2, 'HIGH', 'u1'], ['Confirmer créneau livraison fleuriste', 1, 'URGENT', 'u4'], ['Récupérer liste allergies Nordlight', 2, 'HIGH', 'u5']].forEach(([t, d, pr2, u]) => s.tasks.push({ id: uid(), ref: ref('TSK'), title: t, assigneeId: u, prio: pr2, status: 'TODO', due: addD(d, 17) }))
+  const ld = [['Emma', 'Collins', null, 'Mariage', 'Instagram', 65000, 'NEW', 'HIGH'], ['Raphaël', 'Garnier', null, 'Anniversaire', 'Site web', 12000, 'NEW', 'MEDIUM'], ['Priya', 'Nair', 'Orbis Pharma', 'Corporate', 'Recommandation', 80000, 'QUALIF', 'HIGH'], ['Oscar', 'Nilsson', null, 'Séjour villa', 'Partenaire', 28000, 'CONTACT', 'MEDIUM'], ['Ahmed', 'Rahman', 'Gulfstar Holdings', 'Corporate', 'Partenaire', 150000, 'MEETING', 'URGENT'], ['Charlotte', 'Webb', null, 'Mariage', 'Recommandation', 72000, 'MEETING', 'HIGH'], ['Diego', 'Ramírez', null, 'Séjour villa', 'Instagram', 22000, 'PROPOSAL', 'MEDIUM'], ['Lucie', 'Roy', null, 'Mariage', 'Salon', 48000, 'NEGO', 'HIGH'], ['Kenji', 'Watanabe', null, 'Événement privé', 'Site web', 11000, 'LOST', 'LOW']]
+  ld.forEach(([f, l, c, svc, src, b, st, p2], i) => s.leads.push({ id: uid(), ref: ref('LEAD'), firstName: f, lastName: l, company: c, email: `${norm(f)}.${norm(l)}@example.com`, phone: '+33 7 00 00 00 00', service: svc, source: src, budget: b, stage: st, prio: p2, ownerId: i % 2 ? 'u2' : 'u1', followUp: ['WON', 'LOST'].includes(st) ? null : addD((i % 5) - 1, 10 + (i % 6)), notes: 'Lead fictif.', history: [{ type: 'Note', text: `Demande entrante via ${src}.`, at: addD(-20 + i) }], created: addD(-20 + i) }))
+  const svc = (n) => s.services.find((x) => x.name === n)
+  const line = (n, q) => { const x = svc(n); return { serviceId: x.id, desc: x.name, qty: q, price: x.price, cost: x.cost, disc: 0, tax: 20 } }
+  s.quotes.push({ id: uid(), ref: 'Q-2026-0001', title: 'Mariage Laurent — production complète', clientId: s.clients[0].id, projectId: s.projects[0].id, status: 'APPROVED', date: addD(-50), discount: 5, lines: [line('Organisation complète mariage', 1), line('Menu gastronomique', 140), line('Cocktail champagne', 140), line('Arche florale cérémonie', 1), line('Centre de table floral', 14), line('Photographe journée', 1)] })
+  s.quotes.push({ id: uid(), ref: 'Q-2026-0002', title: '40 ans Haddad — soirée yacht', clientId: s.clients[2].id, projectId: s.projects[2].id, status: 'SENT', date: addD(-5), discount: 0, lines: [line('Cocktail champagne', 60), line('DJ & sonorisation', 1), line('Photographe journée', 1)] })
+  s.seq['Q'] = 2
+  ;[['Dégustation — mariage Laurent', 1, 11, 'u4'], ['Réunion de production Nordlight', 0, 15, 'u3'], ['Point équipe hebdo', 0, 9, 'u1'], ['Visite lieu — Courchevel', 5, 14, 'u3'], ['Présentation client Haddad', 4, 16, 'u3']].forEach(([t, d, h, u]) => s.meetings.push({ id: uid(), title: t, start: addD(d, h), ownerId: u }))
+  s.approvals.push({ id: uid(), projectId: s.projects[0].id, title: 'Moodboard v2', desc: 'Palette corail, lin et verdure.', status: 'PENDING' }, { id: uid(), projectId: s.projects[0].id, title: 'Déroulé de la réception', desc: 'Cérémonie 17h, dîner 20h, soirée 22h30.', status: 'PENDING' }, { id: uid(), projectId: s.projects[0].id, title: 'Concept décoration jardin', desc: 'Fleurs pastel, nappes en lin.', status: 'APPROVED', comment: 'Parfait !' })
+  s.activity.push({ id: uid(), text: 'Devis Q-2026-0001 approuvé par le client', at: addD(-2), user: 'u4' }, { id: uid(), text: 'Nouveau lead Emma Collins — Mariage (Instagram)', at: addD(0, -3), user: 'u2' })
+  s.notifs.push({ id: uid(), text: 'Relance due : Ahmed Rahman', at: addD(0, -2), read: false }, { id: uid(), text: 'Paiement en retard — solde Nordlight', at: addD(-1), read: false })
+  return s
+}
+
+/* ───────────── Store ───────────── */
+const KEY = 'emos-demo-v1'
+let S
+try { S = JSON.parse(localStorage.getItem(KEY)) } catch { S = null }
+if (!S || !S.projects) S = seed()
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)) } catch {} }
+const nextRef = (p) => { S.seq[p] = (S.seq[p] || 0) + 1; return p === 'Q' ? `Q-2026-${String(S.seq[p]).padStart(4, '0')}` : `${p}-${String(S.seq[p]).padStart(4, '0')}` }
+const user = (id) => S.users.find((u) => u.id === id)
+const client = (id) => S.clients.find((c) => c.id === id)
+const project = (id) => S.projects.find((p) => p.id === id)
+const supplier = (id) => S.suppliers.find((x) => x.id === id)
+const fullName = (x) => (x ? `${x.firstName} ${x.lastName}` : '—')
+const log = (text) => { S.activity.unshift({ id: uid(), text, at: new Date().toISOString(), user: UI.me }); S.activity = S.activity.slice(0, 40) }
+const notify = (text) => S.notifs.unshift({ id: uid(), text, at: new Date().toISOString(), read: false })
+const totals = (q) => { let sub = 0, net = 0, tax = 0, cost = 0; const g = 1 - (q.discount || 0) / 100; q.lines.forEach((l) => { const gross = l.qty * l.price; const n = gross * (1 - (l.disc || 0) / 100) * g; sub += gross; net += n; tax += n * (l.tax / 100); cost += l.qty * (l.cost || 0) }); return { sub, disc: sub - net, net, tax, total: net + tax, margin: net - cost, pct: net ? Math.round(((net - cost) / net) * 1000) / 10 : 0 } }
+const progress = (pid) => { const t = S.tasks.filter((x) => x.projectId === pid); return t.length ? Math.round((t.filter((x) => x.status === 'DONE').length / t.length) * 100) : 0 }
+
+/* ───────────── UI state ───────────── */
+const UI = { route: 'dashboard', id: null, tab: 'overview', view: 'table', q: '', filter: {}, me: 'u1', collapsed: false, sheet: null, palette: false, menu: null, portalTab: 'overview', calMonth: null }
+const can = (mod) => { const r = ROLES[user(UI.me).role]; return r.mods === '*' || r.mods.includes(mod) }
+const NAV = [[null, [['dashboard', '◧', 'Tableau de bord']]], ['Ventes', [['leads', '◎', 'CRM & Ventes'], ['clients', '☺', 'Clients']]], ['Opérations', [['projects', '▤', 'Projets'], ['tasks', '☑', 'Tâches & relances'], ['calendar', '▦', 'Calendrier']]], ['Réseau', [['suppliers', '⛟', 'Fournisseurs']]], ['Gestion', [['quotes', '€', 'Devis']]], ['Espace', [['portal', '▣', 'Portail client']]]]
+const LABEL = Object.fromEntries(NAV.flatMap((g) => g[1].map((i) => [i[0], i[2]])))
+
+function go(route, id = null, extra = {}) { Object.assign(UI, { route, id, tab: 'overview', q: '', filter: {}, menu: null, palette: false }, extra); if (window.innerWidth < 760) $('aside')?.classList.remove('open'); render(); window.scrollTo(0, 0) }
+let toastT
+function toast(msg, err) { const t = document.createElement('div'); t.className = 'toast' + (err ? ' e' : ''); t.innerHTML = `<span>${err ? '⚠️' : '✅'}</span><span>${esc(msg)}</span>`; document.querySelectorAll('.toast').forEach((x) => x.remove()); document.body.appendChild(t); clearTimeout(toastT); toastT = setTimeout(() => t.remove(), 3200) }
+
+/* ───────────── Automations ───────────── */
+function onLeadCreated(l) { S.tasks.push({ id: uid(), ref: nextRef('TSK'), title: `Qualifier le lead ${fullName(l)}`, leadId: l.id, assigneeId: l.ownerId, prio: 'HIGH', status: 'TODO', due: addD(1, 17), auto: true }); log(`Nouveau lead ${fullName(l)} — tâche de qualification créée automatiquement`) }
+function onLeadWon(l) {
+  let c = l.clientId ? client(l.clientId) : S.clients.find((x) => x.email && x.email.toLowerCase() === (l.email || '').toLowerCase())
+  if (!c) { c = { id: uid(), ref: nextRef('CLI'), firstName: l.firstName, lastName: l.lastName, company: l.company, email: l.email, phone: l.phone, city: '', status: 'ACTIVE', notes: '', created: new Date().toISOString() }; S.clients.push(c) }
+  l.clientId = c.id
+  if (!l.projectId) {
+    const type = /mariage/i.test(l.service) ? 'WEDDING' : /corporate/i.test(l.service) ? 'CORPORATE' : /séjour/i.test(l.service) ? 'TRAVEL' : /anniv/i.test(l.service) ? 'BIRTHDAY' : 'PRIVATE'
+    const p = { id: uid(), ref: nextRef('PRJ'), name: `${l.service} — ${fullName(l)}`, clientId: c.id, type, status: 'PLANNING', start: addD(90), budget: l.budget, location: '', managerId: 'u3', created: new Date().toISOString() }
+    S.projects.push(p); l.projectId = p.id
+    ;(CHECKLIST[type] || CHECKLIST.DEFAULT).forEach((t, i) => S.tasks.push({ id: uid(), ref: nextRef('TSK'), title: t, projectId: p.id, assigneeId: 'u3', prio: i === 0 ? 'HIGH' : 'MEDIUM', status: 'TODO', due: addD(3 + i * 7, 17), auto: true }))
+    log(`Affaire gagnée — projet ${p.ref} créé avec sa checklist par défaut`); notify(`Nouveau projet : ${p.name}`)
+  }
+}
+function onQuoteApproved(q) { const p = project(q.projectId); if (p && p.status === 'PLANNING') p.status = 'CONFIRMED'; log(`Devis ${q.ref} approuvé${p ? ` — ${p.ref} passé en Confirmé` : ''}`); notify(`Devis ${q.ref} approuvé`) }
+
+/* ───────────── Shell ───────────── */
+function shell(body) {
+  const me = user(UI.me)
+  const unread = S.notifs.filter((n) => !n.read).length
+  const nav = NAV.map(([g, items]) => { const vis = items.filter((i) => can(i[0]) || i[0] === 'portal'); if (!vis.length) return ''; return (g ? `<div class="grp">${g}</div>` : '') + vis.map(([k, ic, l]) => `<button class="nav ${UI.route === k || (UI.route.startsWith(k) && k !== 'dashboard') ? 'on' : ''}" data-go="${k}" title="${l}"><span class="ico">${ic}</span><span class="lbl">${l}</span></button>`).join('') }).join('')
+  const crumbs = UI.route === 'dashboard' ? '<b>Tableau de bord</b>' : `Tableau de bord › ${UI.id ? `<span class="link" data-go="${UI.route}" style="font-size:13px">${LABEL[UI.route]}</span> › <b>${esc(UI.crumb || 'Détail')}</b>` : `<b>${LABEL[UI.route]}</b>`}`
+  return `<div class="app"><aside class="${UI.collapsed ? 'collapsed' : ''}"><div class="brand"><span class="mark">✦</span><span class="brand-txt"><b>Event Management</b><small>Operating System</small></span></div><nav>${nav}</nav>
+  <div class="side-foot"><button class="nav" data-a="collapse"><span class="ico">⇤</span><span class="lbl">Réduire</span></button></div></aside>
+  <div class="main"><header class="top"><button class="icon-btn mobile-only" data-a="burger">☰</button><div class="crumb">${crumbs}</div><div class="sp"></div>
+  <div class="search" data-a="palette">⌕ <span class="lbl2">Rechercher…</span> <span class="lbl2" style="margin-left:auto;font-size:11px;border:1px solid var(--line);border-radius:4px;padding:0 4px">Ctrl K</span></div>
+  <div style="position:relative"><button class="btn p" data-a="menu-create">＋ <span class="lbl2">Créer</span></button>${UI.menu === 'create' ? `<div class="menu"><div class="mh">Actions rapides</div>${[['leads', 'Nouveau lead', 'lead'], ['clients', 'Nouveau client', 'client'], ['projects', 'Nouveau projet', 'project'], ['tasks', 'Nouvelle tâche', 'task'], ['suppliers', 'Nouveau fournisseur', 'supplier'], ['quotes', 'Nouveau devis', 'quote']].filter((x) => can(x[0])).map(([m, l, f]) => `<button data-new="${f}">${l}</button>`).join('')}</div>` : ''}</div>
+  <div style="position:relative"><button class="icon-btn" data-a="menu-notif">🔔${unread ? `<span class="dot">${unread}</span>` : ''}</button>${UI.menu === 'notif' ? `<div class="menu" style="width:300px"><div class="mh" style="display:flex;justify-content:space-between">Notifications <span class="link" data-a="read-all">Tout lire</span></div>${S.notifs.slice(0, 8).map((n) => `<button style="${n.read ? 'color:#888' : 'font-weight:600'}">${n.read ? '' : '● '}${esc(n.text)}<small class="muted" style="margin-left:auto;white-space:nowrap">${fmtD(n.at, { day: 'numeric', month: 'short' })}</small></button>`).join('') || '<div class="empty">Aucune notification</div>'}</div>` : ''}</div>
+  <div style="position:relative"><button class="avatar" style="background:${me.color};border:0;cursor:pointer" data-a="menu-user">${initials(me.name)}</button>${UI.menu === 'user' ? `<div class="menu"><div class="mh">Changer de rôle (test des permissions)</div>${S.users.map((u) => `<button data-me="${u.id}">${u.id === UI.me ? '✓' : '　'} ${esc(u.name)} <small class="muted">${ROLES[u.role].label}</small></button>`).join('')}</div>` : ''}</div>
+  </header><div class="content">${body}</div></div></div>`
+}
+
+/* ───────────── Pages ───────────── */
+function kpi(label, value, hint, route, warn) { return `<div class="kpi ${warn ? 'warn' : ''}" ${route ? `data-go="${route}"` : ''}><span>${label}</span><b class="num">${value}</b><small>${hint || ''}</small></div>` }
+
+function pageDashboard() {
+  const me = user(UI.me)
+  const openLeads = S.leads.filter((l) => !['WON', 'LOST'].includes(l.stage))
+  const active = S.projects.filter((p) => ['PLANNING', 'CONFIRMED', 'IN_PROGRESS'].includes(p.status))
+  const overdue = S.tasks.filter((t) => t.status !== 'DONE' && new Date(t.due) < today0())
+  const pendQ = S.quotes.filter((q) => ['DRAFT', 'SENT'].includes(q.status))
+  const approvedRev = S.quotes.filter((q) => q.status === 'APPROVED').reduce((a, q) => a + totals(q).total, 0)
+  const myTasks = S.tasks.filter((t) => t.assigneeId === UI.me && t.status !== 'DONE').sort((a, b) => new Date(a.due) - new Date(b.due)).slice(0, 7)
+  const agenda = [...S.meetings.map((m) => ({ d: m.start, t: m.title, c: '#0EA5E9', go: 'calendar' })), ...S.leads.filter((l) => l.followUp && can('leads')).map((l) => ({ d: l.followUp, t: `Relance · ${fullName(l)}`, c: '#8B5CF6', go: 'leads', id: l.id })), ...S.tasks.filter((t) => t.status !== 'DONE' && ['HIGH', 'URGENT'].includes(t.prio)).map((t) => ({ d: t.due, t: t.title, c: '#9CA3AF', go: 'tasks' })), ...S.projects.map((p) => ({ d: p.start, t: p.name, c: '#F07F73', go: 'projects', id: p.id }))]
+  const days = [...Array(7)].map((_, i) => new Date(today0().getTime() + i * DAY))
+  const h = new Date().getHours()
+  return `<div class="head"><div><div class="eyebrow">${fmtD(new Date(), { weekday: 'long', day: 'numeric', month: 'long' })}</div><h1>${h < 18 ? 'Bonjour' : 'Bonsoir'}, ${esc(me.name.split(' ')[0])}</h1><p class="desc">Voici l'activité de l'agence aujourd'hui · rôle : ${ROLES[me.role].label}</p></div><div class="actions">${can('calendar') ? '<button class="btn" data-go="calendar">▦ Calendrier</button>' : ''}${can('leads') ? '<button class="btn p" data-new="lead">＋ Nouveau lead</button>' : ''}</div></div>
+  <div class="kpis">${can('clients') ? kpi('Clients', S.clients.length, 'au total', 'clients') : ''}${can('leads') ? kpi('Leads actifs', openLeads.length, `${eur(openLeads.reduce((a, l) => a + (l.budget || 0), 0), 1)} en pipeline`, 'leads') : ''}${kpi('Projets actifs', active.length, 'planif., confirmés, en cours', 'projects')}${kpi('Événements à venir', S.projects.filter((p) => daysUntil(p.start) >= 0 && daysUntil(p.start) <= 30).length, '30 prochains jours', 'projects')}${can('quotes') ? kpi('Devis en attente', pendQ.length, eur(pendQ.reduce((a, q) => a + totals(q).total, 0), 1), 'quotes') : ''}${kpi('Tâches en retard', overdue.length, overdue.length ? 'à traiter' : 'tout est à jour', 'tasks', overdue.length)}${can('quotes') ? kpi('CA approuvé', eur(approvedRev, 1), 'devis approuvés TTC', 'quotes') : ''}${kpi('Mes tâches', myTasks.length, 'ouvertes', 'tasks')}</div>
+  <div class="grid"><div class="card"><div class="card-h"><h3>Projets actifs</h3><button class="link" data-go="projects">Tout voir →</button></div><div class="tw"><table><tr><th>Projet</th><th>Date</th><th>Statut</th><th>Avancement</th><th>Responsable</th></tr>${active.sort((a, b) => new Date(a.start) - new Date(b.start)).map((p) => `<tr class="click" data-go="projects" data-id="${p.id}"><td><span class="t">${esc(p.name)}</span><span class="sub">${esc(fullName(client(p.clientId)))}</span></td><td class="num">${fmtD(p.start, { day: 'numeric', month: 'short' })}<span class="sub">dans ${daysUntil(p.start)} j</span></td><td>${badge(O.pstatus, p.status)}</td><td style="width:150px">${progBar(progress(p.id))}</td><td>${chip(p.managerId)}</td></tr>`).join('')}</table></div></div>
+  <div class="card"><div class="card-h"><h3>Mes tâches</h3><button class="link" data-go="tasks">Tout voir →</button></div><ul class="list">${myTasks.map(taskRow).join('') || '<div class="empty">Tout est fait 🎉</div>'}</ul></div></div>
+  <div class="card" style="margin-top:16px"><div class="card-h"><h3>Calendrier & relances — 7 prochains jours</h3><small>Réunions · relances · échéances · événements</small></div><div class="agenda">${days.map((d, i) => `<div class="${i === 0 ? 'today' : ''}"><div class="ag-d">${i === 0 ? "Aujourd'hui" : fmtD(d, { weekday: 'short' })}</div><div class="ag-n">${d.getDate()}</div>${agenda.filter((a) => sameDay(a.d, d)).slice(0, 5).map((a) => `<div class="ag-i" data-go="${a.go}" ${a.id ? `data-id="${a.id}"` : ''}><i style="background:${a.c}"></i><span>${new Date(a.d).getHours() ? `<b class="num">${new Date(a.d).toTimeString().slice(0, 5)}</b> ` : ''}${esc(a.t)}</span></div>`).join('') || '<div class="muted" style="font-size:12px;margin-top:6px">—</div>'}</div>`).join('')}</div></div>
+  <div class="grid" style="margin-top:16px"><div class="card"><div class="card-h"><h3>Activité récente</h3></div><ul class="list">${S.activity.slice(0, 8).map((a) => `<li>${chip(a.user, true)}<span style="flex:1">${esc(a.text)}</span><small class="muted">${fmtD(a.at, { day: 'numeric', month: 'short' })}</small></li>`).join('')}</ul></div>
+  <div class="card"><div class="card-h"><h3>Actions rapides</h3></div><div class="card-b" style="display:grid;grid-template-columns:1fr 1fr;gap:8px">${[['lead', 'Nouveau lead', 'leads'], ['client', 'Nouveau client', 'clients'], ['project', 'Nouveau projet', 'projects'], ['task', 'Nouvelle tâche', 'tasks'], ['supplier', 'Nouveau fournisseur', 'suppliers'], ['quote', 'Nouveau devis', 'quotes']].filter((x) => can(x[2])).map(([f, l]) => `<button class="btn" data-new="${f}">＋ ${l}</button>`).join('')}</div></div></div>`
+}
+const progBar = (v) => `<div class="prog"><div class="bar"><i class="${v === 100 ? 'full' : ''}" style="width:${v}%"></i></div><small class="num muted">${v}%</small></div>`
+const chip = (uidv, only) => { const u = user(uidv); if (!u) return '<span class="muted">—</span>'; return `<span style="display:inline-flex;align-items:center;gap:6px;white-space:nowrap"><span class="avatar xs" style="background:${u.color}">${initials(u.name)}</span>${only ? '' : esc(u.name)}</span>` }
+function taskRow(t) { const late = t.status !== 'DONE' && new Date(t.due) < today0(); const p = project(t.projectId); return `<li><span class="chk ${t.status === 'DONE' ? 'on' : ''}" data-toggle="${t.id}">${t.status === 'DONE' ? '✓' : ''}</span><div style="flex:1;min-width:0"><div class="${t.status === 'DONE' ? 'done' : ''}" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(t.title)}</div><small class="${late ? 'overdue' : 'muted'}">${late ? 'En retard · ' : ''}${fmtD(t.due, { day: 'numeric', month: 'short' })}${p ? ' · ' + esc(p.name) : ''}${t.auto ? ' · <span class="badge b-violet" style="height:16px;font-size:10px">auto</span>' : ''}</small></div>${badge(O.prio, t.prio, false)}${chip(t.assigneeId, true)}</li>` }
+
+function listToolbar(filters, views) {
+  return `<div class="toolbar"><input class="inp" id="q" placeholder="Rechercher…" value="${esc(UI.q)}" style="width:240px">${filters.map(([k, label, list]) => `<select class="sel" data-filter="${k}"><option value="">${label} : tous</option>${options(list, UI.filter[k])}</select>`).join('')}<div class="sp"></div>${views ? `<div class="seg">${views.map(([v, l]) => `<button class="${UI.view === v ? 'on' : ''}" data-view="${v}">${l}</button>`).join('')}</div>` : ''}<button class="btn sm" data-a="export">⇩ Export CSV</button></div>`
+}
+const match = (obj, fields) => !UI.q || fields.some((f) => String(obj[f] ?? '').toLowerCase().includes(UI.q.toLowerCase()))
+const filt = (obj) => Object.entries(UI.filter).every(([k, v]) => !v || obj[k] === v || (Array.isArray(obj[k]) && obj[k].includes(v)))
+
+function pageLeads() {
+  if (UI.id) return pageLead()
+  const rows = S.leads.filter((l) => match(l, ['firstName', 'lastName', 'company', 'email', 'ref']) && filt(l))
+  const won = S.leads.filter((l) => l.stage === 'WON').length, lost = S.leads.filter((l) => l.stage === 'LOST').length
+  const open = S.leads.filter((l) => !['WON', 'LOST'].includes(l.stage))
+  return `<div class="head"><div><h1>CRM & Ventes</h1><p class="desc">Leads, pipeline et relances</p></div><div class="actions"><button class="btn p" data-new="lead">＋ Nouveau lead</button></div></div>
+  <div class="kpis">${kpi('Leads ouverts', open.length)}${kpi('Valeur du pipeline', eur(open.reduce((a, l) => a + (l.budget || 0), 0), 1))}${kpi('Gagnés', won)}${kpi('Taux de conversion', won + lost ? Math.round((won / (won + lost)) * 100) + '%' : '—', 'gagnés / (gagnés + perdus)')}</div>
+  <div class="card">${listToolbar([['stage', 'Étape', O.stage], ['prio', 'Priorité', O.prio], ['source', 'Source', O.source]], [['table', '☰ Tableau'], ['kanban', '▦ Kanban']])}
+  ${UI.view === 'kanban' ? `<div class="board">${O.stage.map(([k, l, tone]) => { const items = rows.filter((x) => x.stage === k); return `<div class="col" data-drop="${k}"><div class="col-h"><span><span class="badge b-${tone}" style="height:8px;width:8px;padding:0;border-radius:50%"></span> ${l} <small>${items.length}</small></span><small>${eur(items.reduce((a, x) => a + (x.budget || 0), 0), 1)}</small></div><div class="col-b">${items.map((x) => `<div class="kcard" draggable="true" data-drag="${x.id}" data-go="leads" data-id="${x.id}"><div style="display:flex;justify-content:space-between;gap:6px"><b style="font-size:13px">${esc(fullName(x))}</b>${chip(x.ownerId, true)}</div>${x.company ? `<small class="muted">${esc(x.company)}</small>` : ''}<div style="margin-top:6px;display:flex;gap:4px;flex-wrap:wrap"><span class="badge b-gray">${esc(x.service)}</span>${badge(O.prio, x.prio, false)}</div><div class="meta"><b class="num">${eur(x.budget, 1)}</b>${x.followUp ? `<small class="${new Date(x.followUp) < new Date() ? 'overdue' : 'muted'}">⏰ ${fmtD(x.followUp, { day: 'numeric', month: 'short' })}</small>` : ''}</div></div>`).join('') || '<div class="empty" style="padding:14px;border:1px dashed var(--line2);border-radius:8px">Déposer ici</div>'}</div></div>` }).join('')}</div><p class="muted" style="font-size:12px;padding:0 14px 12px">Glissez une carte vers « Gagné » : le client et le projet (avec checklist) sont créés automatiquement.</p>`
+    : `<div class="tw"><table><tr><th>Lead</th><th>Service</th><th class="r">Budget</th><th>Étape</th><th>Priorité</th><th>Source</th><th>Relance</th><th>Commercial</th></tr>${rows.map((l) => `<tr class="click" data-go="leads" data-id="${l.id}"><td><span class="t">${esc(fullName(l))}</span><span class="sub">${esc([l.company, l.ref].filter(Boolean).join(' · '))}</span></td><td>${esc(l.service)}</td><td class="r num">${eur(l.budget)}</td><td>${badge(O.stage, l.stage)}</td><td>${badge(O.prio, l.prio, false)}</td><td class="muted">${esc(l.source)}</td><td class="${l.followUp && new Date(l.followUp) < new Date() ? 'overdue' : ''}">${fmtDT(l.followUp)}</td><td>${chip(l.ownerId)}</td></tr>`).join('') || '<tr><td colspan="8" class="empty">Aucun lead</td></tr>'}</table></div>`}</div>`
+}
+function pageLead() {
+  const l = S.leads.find((x) => x.id === UI.id); if (!l) return go('leads')
+  UI.crumb = fullName(l)
+  const steps = O.stage.filter((s) => s[0] !== 'LOST'); const idx = steps.findIndex((s) => s[0] === l.stage)
+  const tasks = S.tasks.filter((t) => t.leadId === l.id)
+  return `<div class="head"><div><span class="ref">${l.ref}</span> ${badge(O.stage, l.stage)} ${badge(O.prio, l.prio, false)}<h1 style="margin-top:6px">${esc(fullName(l))}</h1><p class="desc">${esc([l.company, l.email, l.phone].filter(Boolean).join(' · '))}</p></div><div class="actions">${!l.clientId ? '<button class="btn" data-a="lead-client">Convertir en client</button>' : ''}${!l.projectId ? '<button class="btn p" data-a="lead-won">Gagné → créer le projet</button>' : `<button class="btn" data-go="projects" data-id="${l.projectId}">Voir le projet →</button>`}<button class="btn" data-edit="lead">✎ Modifier</button><button class="btn d" data-a="delete-lead">Supprimer</button></div></div>
+  <div class="seg" style="display:flex;margin-bottom:16px;overflow-x:auto">${steps.map((s, i) => `<button style="flex:1;white-space:nowrap" class="${s[0] === l.stage ? 'on' : ''}" data-stage="${s[0]}">${i < idx ? '✓ ' : ''}${s[1]}</button>`).join('')}<button data-stage="LOST" class="${l.stage === 'LOST' ? 'on' : ''}">Perdu</button></div>
+  <div class="grid"><div><div class="card"><div class="card-h"><h3>Opportunité</h3></div><div class="card-b"><dl class="info"><div><dt>Service</dt><dd>${esc(l.service)}</dd></div><div><dt>Budget estimé</dt><dd>${eur(l.budget)}</dd></div><div><dt>Source</dt><dd>${esc(l.source)}</dd></div><div><dt>Commercial</dt><dd>${chip(l.ownerId)}</dd></div><div><dt>Prochaine relance</dt><dd>${fmtDT(l.followUp)}</dd></div><div><dt>Créé le</dt><dd>${fmtD(l.created)}</dd></div><div style="grid-column:1/-1"><dt>Notes</dt><dd>${esc(l.notes)}</dd></div></dl></div></div>
+  <div class="card" style="margin-top:16px"><div class="card-h"><h3>Historique des échanges</h3></div><div class="card-b"><div style="display:flex;gap:8px;margin-bottom:8px"><select class="sel" id="h-type">${options(['Note', 'Appel', 'Email', 'WhatsApp', 'Rendez-vous'])}</select></div><textarea id="h-text" placeholder="Que s'est-il passé ? Points clés, prochaines étapes…"></textarea><div style="text-align:right;margin-top:8px"><button class="btn p sm" data-a="add-history">Ajouter à l'historique</button></div>
+  <ul class="list" style="margin-top:12px">${l.history.slice().reverse().map((h) => `<li style="padding-left:0"><span class="badge b-gray">${esc(h.type)}</span><span style="flex:1">${esc(h.text)}</span><small class="muted">${fmtD(h.at, { day: 'numeric', month: 'short' })}</small></li>`).join('')}</ul></div></div></div>
+  <div><div class="card"><div class="card-h"><h3>Tâches & relances</h3><button class="btn sm" data-new="task" data-lead="${l.id}">＋ Ajouter</button></div><ul class="list">${tasks.map(taskRow).join('') || '<div class="empty">Aucune tâche</div>'}</ul></div>
+  <div class="card" style="margin-top:16px"><div class="card-h"><h3>Conversion</h3></div><div class="card-b"><dl class="info" style="grid-template-columns:1fr"><div><dt>Client</dt><dd>${l.clientId ? `<span class="link" style="font-size:13.5px;color:var(--coral-d)" data-go="clients" data-id="${l.clientId}">${esc(fullName(client(l.clientId)))}</span>` : 'Pas encore converti'}</dd></div><div><dt>Projet</dt><dd>${l.projectId ? esc(project(l.projectId)?.name) : 'Créé automatiquement quand l’affaire est gagnée'}</dd></div></dl></div></div></div></div>`
+}
+
+function pageClients() {
+  if (UI.id) { const c = client(UI.id); if (!c) return go('clients'); UI.crumb = fullName(c); const ps = S.projects.filter((p) => p.clientId === c.id); const qs = S.quotes.filter((q) => q.clientId === c.id)
+    return `<div class="head"><div><span class="ref">${c.ref}</span> ${badge([['VIP', 'VIP', 'coral'], ['ACTIVE', 'Actif', 'green']], c.status)}<h1 style="margin-top:6px">${esc(fullName(c))}</h1><p class="desc">${esc([c.company, c.city, c.email].filter(Boolean).join(' · '))}</p></div><div class="actions"><button class="btn" data-new="project" data-client="${c.id}">＋ Projet</button><button class="btn" data-edit="client">✎ Modifier</button></div></div>
+    <div class="stats"><div class="stat"><span>Projets</span><b>${ps.length}</b></div><div class="stat"><span>Devis</span><b>${qs.length}</b></div><div class="stat"><span>Montant approuvé</span><b>${eur(qs.filter((q) => q.status === 'APPROVED').reduce((a, q) => a + totals(q).total, 0))}</b></div><div class="stat"><span>Client depuis</span><b style="font-size:15px">${fmtD(c.created, { month: 'long', year: 'numeric' })}</b></div></div>
+    <div class="grid"><div class="card"><div class="card-h"><h3>Projets & événements</h3></div><div class="tw"><table><tr><th>Projet</th><th>Date</th><th>Statut</th><th>Avancement</th></tr>${ps.map((p) => `<tr class="click" data-go="projects" data-id="${p.id}"><td class="t">${esc(p.name)}</td><td>${fmtD(p.start)}</td><td>${badge(O.pstatus, p.status)}</td><td style="width:150px">${progBar(progress(p.id))}</td></tr>`).join('') || '<tr><td colspan=4 class="empty">Aucun projet</td></tr>'}</table></div></div>
+    <div class="card"><div class="card-h"><h3>Devis</h3></div><ul class="list">${qs.map((q) => `<li class="click" data-go="quotes" data-id="${q.id}" style="cursor:pointer"><span style="flex:1">${esc(q.ref)}</span><b class="num">${eur(totals(q).total)}</b>${badge(O.qstatus, q.status)}</li>`).join('') || '<div class="empty">Aucun devis</div>'}</ul><div class="card-b" style="border-top:1px solid var(--line)"><dl class="info" style="grid-template-columns:1fr"><div><dt>Notes internes</dt><dd>${esc(c.notes) || '—'}</dd></div></dl></div></div></div>` }
+  const rows = S.clients.filter((c) => match(c, ['firstName', 'lastName', 'company', 'email', 'city', 'ref']) && filt(c))
+  return `<div class="head"><div><h1>Clients</h1><p class="desc">${S.clients.length} clients · doublons détectés par email</p></div><div class="actions"><button class="btn p" data-new="client">＋ Nouveau client</button></div></div>
+  <div class="card">${listToolbar([['status', 'Statut', [['VIP', 'VIP'], ['ACTIVE', 'Actif']]]])}<div class="tw"><table><tr><th>Client</th><th>Statut</th><th>Contact</th><th>Ville</th><th class="r">Projets</th></tr>${rows.map((c) => `<tr class="click" data-go="clients" data-id="${c.id}"><td><span class="t">${esc(fullName(c))}</span><span class="sub">${esc([c.company, c.ref].filter(Boolean).join(' · '))}</span></td><td>${badge([['VIP', 'VIP', 'coral'], ['ACTIVE', 'Actif', 'green']], c.status)}</td><td>${esc(c.email)}<span class="sub">${esc(c.phone)}</span></td><td class="muted">${esc(c.city)}</td><td class="r num">${S.projects.filter((p) => p.clientId === c.id).length}</td></tr>`).join('')}</table></div></div>`
+}
+
+function pageProjects() {
+  if (UI.id) return pageProject()
+  const scoped = user(UI.me).role === 'team' ? S.projects.filter((p) => S.tasks.some((t) => t.projectId === p.id && t.assigneeId === UI.me)) : S.projects
+  const rows = scoped.filter((p) => match(p, ['name', 'ref', 'location']) && filt(p))
+  return `<div class="head"><div><h1>Projets</h1><p class="desc">${user(UI.me).role === 'team' ? 'Projets qui vous sont assignés' : 'Mariages, événements, séjours et conciergerie'}</p></div><div class="actions"><button class="btn p" data-new="project">＋ Nouveau projet</button></div></div>
+  <div class="card">${listToolbar([['status', 'Statut', O.pstatus], ['type', 'Type', O.ptype]], [['table', '☰ Tableau'], ['kanban', '▦ Kanban']])}
+  ${UI.view === 'kanban' ? `<div class="board">${O.pstatus.map(([k, l, tone]) => `<div class="col" data-pdrop="${k}"><div class="col-h"><span>${l} <small>${rows.filter((p) => p.status === k).length}</small></span></div><div class="col-b">${rows.filter((p) => p.status === k).map((p) => `<div class="kcard" draggable="true" data-pdrag="${p.id}" data-go="projects" data-id="${p.id}"><b style="font-size:13px">${esc(p.name)}</b><small class="sub">${esc(fullName(client(p.clientId)))}</small><div style="margin-top:8px">${progBar(progress(p.id))}</div><div class="meta"><small class="muted">${fmtD(p.start, { day: 'numeric', month: 'short' })}</small>${chip(p.managerId, true)}</div></div>`).join('')}</div></div>`).join('')}</div>`
+    : `<div class="tw"><table><tr><th>Projet</th><th>Type</th><th>Date</th><th>Statut</th><th>Avancement</th><th>Responsable</th><th class="r">Budget</th></tr>${rows.map((p) => `<tr class="click" data-go="projects" data-id="${p.id}"><td><span class="t">${esc(p.name)}</span><span class="sub">${esc(fullName(client(p.clientId)))} · ${p.ref}</span></td><td>${badge(O.ptype, p.type, false)}</td><td>${fmtD(p.start)}<span class="sub">${esc(p.location)}</span></td><td>${badge(O.pstatus, p.status)}</td><td style="width:150px">${progBar(progress(p.id))}</td><td>${chip(p.managerId)}</td><td class="r num">${eur(p.budget)}</td></tr>`).join('') || '<tr><td colspan=7 class="empty">Aucun projet</td></tr>'}</table></div>`}</div>`
+}
+function pageProject() {
+  const p = project(UI.id); if (!p) return go('projects')
+  UI.crumb = p.name
+  const tasks = S.tasks.filter((t) => t.projectId === p.id).sort((a, b) => new Date(a.due) - new Date(b.due))
+  const qs = S.quotes.filter((q) => q.projectId === p.id)
+  const appr = S.approvals.filter((a) => a.projectId === p.id)
+  const tabs = [['overview', 'Vue d’ensemble'], ['tasks', `Tâches (${tasks.filter((t) => t.status !== 'DONE').length})`], ['quotes', `Devis (${qs.length})`], ['portal', `Portail client (${appr.filter((a) => a.status === 'PENDING').length})`]]
+  const q0 = qs.find((q) => q.status === 'APPROVED')
+  return `<div class="head"><div><span class="ref">${p.ref}</span> ${badge(O.pstatus, p.status)} ${badge(O.ptype, p.type, false)}<h1 style="margin-top:6px">${esc(p.name)}</h1><p class="desc">${esc(fullName(client(p.clientId)))} · ${fmtD(p.start, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} · ${esc(p.location)}</p></div><div class="actions"><select class="sel" data-pstatus>${options(O.pstatus, p.status)}</select><button class="btn" data-edit="project">✎ Modifier</button></div></div>
+  <div class="stats"><div class="stat"><span>Avancement</span><b>${progress(p.id)}%</b>${progBar(progress(p.id))}</div><div class="stat"><span>Tâches ouvertes</span><b>${tasks.filter((t) => t.status !== 'DONE').length}</b></div><div class="stat"><span>Budget client</span><b>${eur(p.budget)}</b></div><div class="stat"><span>Devis approuvé</span><b>${q0 ? eur(totals(q0).total) : '—'}</b><small class="muted">${q0 ? `marge ${totals(q0).pct}%` : ''}</small></div></div>
+  <div class="tabs">${tabs.map(([k, l]) => `<button class="${UI.tab === k ? 'on' : ''}" data-tab="${k}">${l}</button>`).join('')}</div>
+  ${UI.tab === 'overview' ? `<div class="grid"><div class="card"><div class="card-h"><h3>Prochaines tâches</h3><button class="btn sm" data-new="task" data-project="${p.id}">＋ Tâche</button></div><ul class="list">${tasks.filter((t) => t.status !== 'DONE').slice(0, 6).map(taskRow).join('') || '<div class="empty">Rien à faire 🎉</div>'}</ul></div><div class="card"><div class="card-h"><h3>Détails</h3></div><div class="card-b"><dl class="info" style="grid-template-columns:1fr 1fr"><div><dt>Client</dt><dd><span class="link" style="font-size:13.5px" data-go="clients" data-id="${p.clientId}">${esc(fullName(client(p.clientId)))}</span></dd></div><div><dt>Responsable</dt><dd>${chip(p.managerId)}</dd></div><div><dt>Date</dt><dd>${fmtD(p.start)}</dd></div><div><dt>Lieu</dt><dd>${esc(p.location) || '—'}</dd></div></dl></div></div></div>` : ''}
+  ${UI.tab === 'tasks' ? `<div class="card"><div class="card-h"><h3>Checklist du projet</h3><button class="btn sm p" data-new="task" data-project="${p.id}">＋ Tâche</button></div><ul class="list">${tasks.map(taskRow).join('') || '<div class="empty">Aucune tâche</div>'}</ul></div>` : ''}
+  ${UI.tab === 'quotes' ? `<div class="card"><div class="card-h"><h3>Devis</h3><button class="btn sm p" data-new="quote" data-project="${p.id}">＋ Devis</button></div><ul class="list">${qs.map((q) => `<li data-go="quotes" data-id="${q.id}" style="cursor:pointer"><span style="flex:1"><b>${esc(q.ref)}</b> <span class="muted">${esc(q.title)}</span></span><b class="num">${eur(totals(q).total)}</b>${badge(O.qstatus, q.status)}</li>`).join('') || '<div class="empty">Aucun devis</div>'}</ul></div>` : ''}
+  ${UI.tab === 'portal' ? `<div class="card"><div class="card-h"><h3>Validations client</h3><small>Visibles dans le portail client</small></div><ul class="list">${appr.map((a) => `<li><span style="flex:1"><b>${esc(a.title)}</b><span class="sub">${esc(a.desc)}${a.comment ? ` — « ${esc(a.comment)} »` : ''}</span></span>${badge([['PENDING', 'En attente', 'amber'], ['APPROVED', 'Approuvé', 'green'], ['REJECTED', 'Modifs demandées', 'red']], a.status)}</li>`).join('') || '<div class="empty">Aucune validation</div>'}</ul><div class="card-b" style="border-top:1px solid var(--line);display:flex;gap:8px"><input class="inp" id="appr-title" placeholder="Que doit valider le client ?" style="flex:1"><button class="btn p" data-a="add-approval">Demander la validation</button></div></div>` : ''}`
+}
+
+function pageTasks() {
+  const view = UI.view === 'table' ? 'mine' : UI.view
+  const views = [['mine', 'Mes tâches'], ['today', "Aujourd'hui"], ['overdue', 'En retard'], ['all', 'Toutes'], ['kanban', 'Kanban']]
+  let rows = S.tasks.filter((t) => match(t, ['title', 'ref']) && filt(t))
+  if (user(UI.me).role === 'team') rows = rows.filter((t) => t.assigneeId === UI.me)
+  if (view === 'mine') rows = rows.filter((t) => t.assigneeId === UI.me && t.status !== 'DONE')
+  if (view === 'today') rows = rows.filter((t) => sameDay(t.due, new Date()) && t.status !== 'DONE')
+  if (view === 'overdue') rows = rows.filter((t) => new Date(t.due) < today0() && t.status !== 'DONE')
+  rows.sort((a, b) => new Date(a.due) - new Date(b.due))
+  return `<div class="head"><div><h1>Tâches & relances</h1><p class="desc">Projets, leads et clients</p></div><div class="actions"><button class="btn p" data-new="task">＋ Nouvelle tâche</button></div></div>
+  <div class="tabs">${views.map(([k, l]) => `<button class="${view === k ? 'on' : ''}" data-view="${k}">${l}</button>`).join('')}</div>
+  <div class="card">${listToolbar([['prio', 'Priorité', O.prio], ['assigneeId', 'Assigné', S.users.map((u) => [u.id, u.name])]])}
+  ${view === 'kanban' ? `<div class="board">${O.tstatus.map(([k, l]) => `<div class="col" data-tdrop="${k}"><div class="col-h"><span>${l} <small>${rows.filter((t) => t.status === k).length}</small></span></div><div class="col-b">${rows.filter((t) => t.status === k).map((t) => `<div class="kcard" draggable="true" data-tdrag="${t.id}"><div style="display:flex;justify-content:space-between;gap:6px"><span style="font-size:13px">${esc(t.title)}</span>${chip(t.assigneeId, true)}</div><div class="meta"><small class="${t.status !== 'DONE' && new Date(t.due) < today0() ? 'overdue' : 'muted'}">${fmtD(t.due, { day: 'numeric', month: 'short' })}</small>${badge(O.prio, t.prio, false)}</div></div>`).join('')}</div></div>`).join('')}</div>`
+    : `<ul class="list">${rows.map(taskRow).join('') || `<div class="empty">${view === 'overdue' ? 'Rien en retard 🎉' : 'Aucune tâche'}</div>`}</ul>`}</div>`
+}
+
+function pageCalendar() {
+  const a = UI.calMonth ? new Date(UI.calMonth) : new Date(); a.setDate(1); a.setHours(0, 0, 0, 0)
+  const start = new Date(a); start.setDate(1 - ((a.getDay() + 6) % 7))
+  const items = [...S.meetings.map((m) => ({ kind: 'm', id: m.id, d: m.start, t: m.title, c: 'b-blue' })), ...S.tasks.filter((t) => t.status !== 'DONE' && (user(UI.me).role !== 'team' || t.assigneeId === UI.me)).map((t) => ({ kind: 't', id: t.id, d: t.due, t: t.title, c: 'b-gray' })), ...(can('leads') ? S.leads.filter((l) => l.followUp).map((l) => ({ kind: 'l', id: l.id, d: l.followUp, t: 'Relance · ' + fullName(l), c: 'b-violet' })) : []), ...S.projects.map((p) => ({ kind: 'p', id: p.id, d: p.start, t: p.name, c: 'b-coral' }))]
+  const cells = [...Array(42)].map((_, i) => new Date(start.getTime() + i * DAY + 3600000))
+  return `<div class="head"><div><h1>Calendrier</h1><p class="desc">Réunions, tâches, relances et événements · glissez un élément pour le replanifier</p></div><div class="actions"><button class="btn" data-a="cal-prev">‹</button><button class="btn" data-a="cal-today">Aujourd'hui</button><button class="btn" data-a="cal-next">›</button><button class="btn p" data-new="meeting">＋ Réunion</button></div></div>
+  <div class="card" style="overflow:hidden"><div class="card-h"><h3 style="text-transform:capitalize">${fmtD(a, { month: 'long', year: 'numeric' })}</h3><small><span class="badge b-blue">Réunion</span> <span class="badge b-gray">Tâche</span> <span class="badge b-violet">Relance</span> <span class="badge b-coral">Événement</span></small></div>
+  <div class="dow">${['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'].map((d) => `<div>${d}</div>`).join('')}</div>
+  <div class="cal">${cells.map((d) => { const its = items.filter((x) => sameDay(x.d, d)); return `<div class="d ${d.getMonth() !== a.getMonth() ? 'o' : ''}" data-cdrop="${toDateInput(d)}" data-cnew="${toDateInput(d)}"><span class="n ${sameDay(d, new Date()) ? 'today' : ''}">${d.getDate()}</span>${its.slice(0, 3).map((x) => `<span class="chip badge ${x.c}" draggable="${x.kind !== 'p'}" data-cdrag="${x.kind}:${x.id}" title="${esc(x.t)}">${esc(x.t)}</span>`).join('')}${its.length > 3 ? `<small class="muted">+${its.length - 3}</small>` : ''}</div>` }).join('')}</div></div>`
+}
+
+function pageSuppliers() {
+  if (UI.id) { const s = supplier(UI.id); if (!s) return go('suppliers'); UI.crumb = s.name; const svcs = S.services.filter((x) => x.supplierId === s.id)
+    return `<div class="head"><div><span class="ref">${s.ref}</span> ${badge(O.sstatus, s.status)} <span>${'★'.repeat(s.rating)}<span class="muted">${'★'.repeat(5 - s.rating)}</span></span><h1 style="margin-top:6px">${esc(s.name)}</h1><p class="desc">${esc(s.city)} · ${esc(s.email)} · ${esc(s.phone)}</p></div><div class="actions"><select class="sel" data-sstatus>${options(O.sstatus, s.status)}</select><button class="btn" data-edit="supplier">✎ Modifier</button></div></div>
+    ${s.status === 'SUSPENDED' ? '<div class="card card-b" style="background:var(--red-bg);color:var(--red);margin-bottom:16px">⚠️ Fournisseur suspendu : il ne peut plus être sélectionné dans les devis.</div>' : ''}
+    <div style="display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap">${s.cats.map((c) => `<span class="badge b-gray">${esc(c)}</span>`).join('')}</div>
+    <div class="card"><div class="card-h"><h3>Prestations au catalogue</h3></div><div class="tw"><table><tr><th>Prestation</th><th class="r">Coût</th><th class="r">Prix</th><th class="r">Marge</th></tr>${svcs.map((x) => `<tr><td>${esc(x.name)}<span class="sub">/ ${esc(x.unit)}</span></td><td class="r num muted">${eur(x.cost)}</td><td class="r num">${eur(x.price)}</td><td class="r num" style="color:var(--green)">${x.price ? Math.round(((x.price - x.cost) / x.price) * 100) : 0}%</td></tr>`).join('') || '<tr><td colspan=4 class="empty">Aucune prestation</td></tr>'}</table></div></div>` }
+  const rows = S.suppliers.filter((s) => match(s, ['name', 'city', 'ref']) && filt(s))
+  return `<div class="head"><div><h1>Fournisseurs</h1><p class="desc">Une seule fiche par fournisseur, quelles que soient ses catégories</p></div><div class="actions"><button class="btn p" data-new="supplier">＋ Nouveau fournisseur</button></div></div>
+  <div class="card">${listToolbar([['cats', 'Catégorie', O.cats], ['status', 'Statut', O.sstatus]])}<div class="tw"><table><tr><th>Fournisseur</th><th>Catégories</th><th>Ville</th><th>Note</th><th>Statut</th><th></th></tr>${rows.map((s) => `<tr class="click" data-go="suppliers" data-id="${s.id}" style="${s.status === 'SUSPENDED' ? 'opacity:.6' : ''}"><td><span class="t">${esc(s.name)}</span><span class="sub">${s.ref}</span></td><td>${s.cats.map((c) => `<span class="badge b-gray" style="margin:1px">${esc(c)}</span>`).join('')}</td><td class="muted">${esc(s.city)}</td><td style="color:#F59E0B">${'★'.repeat(s.rating)}</td><td>${badge(O.sstatus, s.status)}</td><td><button class="icon-btn" data-fav="${s.id}" title="Favori" style="color:${s.fav ? 'var(--coral)' : '#ccc'}">${s.fav ? '♥' : '♡'}</button></td></tr>`).join('')}</table></div></div>`
+}
+
+function pageQuotes() {
+  if (UI.id) return pageQuote()
+  const rows = S.quotes.filter((q) => match(q, ['ref', 'title']) && filt(q))
+  return `<div class="head"><div><h1>Devis</h1><p class="desc">Lignes issues du catalogue, remises, TVA, marge et validation</p></div><div class="actions"><button class="btn p" data-new="quote">＋ Nouveau devis</button></div></div>
+  <div class="card">${listToolbar([['status', 'Statut', O.qstatus]])}<div class="tw"><table><tr><th>Devis</th><th>Client</th><th>Date</th><th>Statut</th><th class="r">Total TTC</th><th class="r">Marge</th></tr>${rows.map((q) => { const t = totals(q); return `<tr class="click" data-go="quotes" data-id="${q.id}"><td><span class="t">${esc(q.title)}</span><span class="sub">${q.ref}</span></td><td>${esc(fullName(client(q.clientId)))}</td><td>${fmtD(q.date)}</td><td>${badge(O.qstatus, q.status)}</td><td class="r num"><b>${eur(t.total)}</b></td><td class="r num" style="color:var(--green)">${t.pct}%</td></tr>` }).join('') || '<tr><td colspan=6 class="empty">Aucun devis</td></tr>'}</table></div></div>`
+}
+function pageQuote() {
+  const q = S.quotes.find((x) => x.id === UI.id); if (!q) return go('quotes')
+  UI.crumb = q.ref
+  const t = totals(q), locked = q.status === 'APPROVED'
+  const catalog = S.services.filter((s) => !s.supplierId || supplier(s.supplierId).status !== 'SUSPENDED')
+  return `<div class="head"><div><span class="ref">${q.ref}</span> ${badge(O.qstatus, q.status)}<h1 style="margin-top:6px">${esc(q.title)}</h1><p class="desc">${esc(fullName(client(q.clientId)))} · émis le ${fmtD(q.date)}</p></div><div class="actions">${q.status === 'DRAFT' ? '<button class="btn" data-qs="SENT">Marquer envoyé</button>' : ''}${['DRAFT', 'SENT'].includes(q.status) ? '<button class="btn p" data-qs="APPROVED">✓ Approuver</button><button class="btn g" data-qs="REJECTED">Refusé</button>' : ''}<button class="btn" data-a="print">⎙ Imprimer / PDF</button><button class="btn g" data-a="dup-quote">Dupliquer</button></div></div>
+  <div class="grid"><div class="card">${locked ? '<div style="padding:8px 16px;background:var(--off);border-bottom:1px solid var(--line);font-size:12px;color:var(--muted)">🔒 Devis approuvé : verrouillé (dupliquez-le pour le modifier)</div>' : ''}<div class="tw"><table class="lines"><tr><th>Description</th><th class="r" style="width:80px">Qté</th><th class="r" style="width:110px">Prix unit.</th><th class="r" style="width:80px">Remise %</th><th class="r" style="width:70px">TVA %</th><th class="r">Total HT</th><th></th></tr>${q.lines.map((l, i) => `<tr><td><input ${locked ? 'disabled' : ''} data-line="${i}" data-f="desc" value="${esc(l.desc)}"></td><td><input ${locked ? 'disabled' : ''} class="r" data-line="${i}" data-f="qty" value="${l.qty}"></td><td><input ${locked ? 'disabled' : ''} class="r" data-line="${i}" data-f="price" value="${l.price}"></td><td><input ${locked ? 'disabled' : ''} class="r" data-line="${i}" data-f="disc" value="${l.disc}"></td><td><input ${locked ? 'disabled' : ''} class="r" data-line="${i}" data-f="tax" value="${l.tax}"></td><td class="r num"><b>${eur(l.qty * l.price * (1 - l.disc / 100))}</b></td><td>${locked ? '' : `<button class="icon-btn" data-delline="${i}" title="Supprimer">✕</button>`}</td></tr>`).join('')}</table></div>
+  ${locked ? '' : `<div class="toolbar" style="border-top:1px solid var(--line);border-bottom:0"><select class="sel" id="add-svc" style="flex:1">${options(catalog.map((s) => [s.id, `${s.name} — ${eur(s.price)} / ${s.unit}`]), '', 'Ajouter une prestation du catalogue (fournisseurs suspendus exclus)…')}</select><button class="btn" data-a="add-line">＋ Ligne libre</button></div>`}</div>
+  <div class="card"><div class="card-h"><h3>Récapitulatif</h3></div><div class="card-b"><div class="totals" style="max-width:none"><div><span class="muted">Sous-total</span><span class="num">${eur(t.sub)}</span></div>${t.disc > 0.5 ? `<div><span class="muted">Remises${q.discount ? ` (dont ${q.discount}% globale)` : ''}</span><span class="num">−${eur(t.disc)}</span></div>` : ''}<div><span class="muted">Net HT</span><span class="num">${eur(t.net)}</span></div><div><span class="muted">TVA</span><span class="num">${eur(t.tax)}</span></div><div class="gt"><span>Total TTC</span><span class="num">${eur(t.total)}</span></div><div style="color:var(--green);font-size:12.5px"><span>Marge brute</span><span class="num">${eur(t.margin)} (${t.pct}%)</span></div></div>
+  <label style="display:block;font-size:12.5px;margin:14px 0 4px;color:#555">Remise globale (%)</label><input class="inp" ${locked ? 'disabled' : ''} id="q-disc" value="${q.discount}" style="width:100%"></div></div></div>
+  <div id="print-area" style="display:none">${printQuote(q)}</div>`
+}
+function printQuote(q) { const t = totals(q), c = client(q.clientId); return `<div style="font-family:Helvetica,Arial;padding:40px;color:#252525"><div style="display:flex;justify-content:space-between"><div style="display:flex;gap:10px;align-items:center"><div style="width:28px;height:28px;border-radius:8px;background:#F07F73"></div><div><b>Event Management</b><br><small style="color:#777">Agence démo (fictive)</small></div></div><div style="text-align:right"><div style="font-size:24px;font-weight:700">Devis</div><small style="color:#777">${q.ref}</small></div></div><div style="display:flex;gap:12px;margin:24px 0"><div style="flex:1;background:#F5F1ED;border-radius:8px;padding:12px"><small style="color:#777">FACTURÉ À</small><br><b>${esc(fullName(c))}</b><br>${esc(c.email)}</div><div style="flex:1;background:#F5F1ED;border-radius:8px;padding:12px"><small style="color:#777">DÉTAILS</small><br>Date : ${fmtD(q.date)}<br>Projet : ${esc(project(q.projectId)?.name || '—')}</div></div><h3>${esc(q.title)}</h3><table style="width:100%;border-collapse:collapse;font-size:12px"><tr style="background:#FCE9E6;color:#B85650"><th style="text-align:left;padding:8px">Description</th><th style="text-align:right;padding:8px">Qté</th><th style="text-align:right;padding:8px">Prix</th><th style="text-align:right;padding:8px">Total HT</th></tr>${q.lines.map((l) => `<tr><td style="padding:8px;border-bottom:1px solid #eee">${esc(l.desc)}</td><td style="text-align:right;padding:8px;border-bottom:1px solid #eee">${l.qty}</td><td style="text-align:right;padding:8px;border-bottom:1px solid #eee">${eur(l.price)}</td><td style="text-align:right;padding:8px;border-bottom:1px solid #eee">${eur(l.qty * l.price * (1 - l.disc / 100))}</td></tr>`).join('')}</table><div style="width:260px;margin:16px 0 0 auto;font-size:13px"><div style="display:flex;justify-content:space-between">Net HT<span>${eur(t.net)}</span></div><div style="display:flex;justify-content:space-between">TVA<span>${eur(t.tax)}</span></div><div style="display:flex;justify-content:space-between;font-weight:700;font-size:16px;border-top:2px solid #252525;margin-top:6px;padding-top:6px">Total TTC<span>${eur(t.total)}</span></div></div><p style="margin-top:30px;font-size:11px;color:#777;border:1px solid #eee;border-radius:8px;padding:10px">Acompte de 30% à la signature, solde 15 jours avant l'événement. Devis valable 30 jours.</p></div>` }
+
+function pagePortal() {
+  const c = S.clients[0], p = S.projects.find((x) => x.clientId === c.id)
+  const appr = S.approvals.filter((a) => a.projectId === p.id), pend = appr.filter((a) => a.status === 'PENDING')
+  const qs = S.quotes.filter((q) => q.clientId === c.id && q.status !== 'DRAFT')
+  const T = UI.portalTab
+  return `<div class="portal"><p class="muted" style="font-size:12.5px;margin:0 0 10px">Aperçu de ce que voit le client <b>${esc(fullName(c))}</b> (version mobile). Aucun coût, aucune marge, aucune note interne n'y figure.</p>
+  <div class="hero"><div class="in"><small style="color:var(--coral-d);font-weight:600">Bonjour ${esc(c.firstName)} 👋</small><h1 style="margin-top:4px">${esc(p.name)}</h1><p class="desc">${fmtD(p.start, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} · ${esc(p.location)}</p></div><div class="tri"><div><b>${daysUntil(p.start)}</b><small>jours restants</small></div><div><b>${pend.length}</b><small>validations en attente</small></div><div><b>${progress(p.id)}%</b><small>préparation</small></div></div></div>
+  <div class="pills">${[['overview', 'Aperçu'], ['approvals', `Validations${pend.length ? ' (' + pend.length + ')' : ''}`], ['proposal', 'Proposition'], ['messages', 'Messages']].map(([k, l]) => `<button class="${T === k ? 'on' : ''}" data-ptab="${k}">${l}</button>`).join('')}</div>
+  ${T === 'overview' ? `<div class="card"><div class="card-h"><h3>Avancement</h3>${badge(O.pstatus, p.status)}</div><div class="card-b">${progBar(progress(p.id))}<p class="muted" style="font-size:13px">Votre contact : ${esc(user(p.managerId).name)}, ${esc(user(p.managerId).title)}</p></div></div>` : ''}
+  ${T === 'approvals' ? appr.map((a) => `<div class="card card-b" style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;gap:8px"><b>${esc(a.title)}</b>${badge([['PENDING', 'En attente', 'amber'], ['APPROVED', 'Approuvé', 'green'], ['REJECTED', 'Modifs demandées', 'red']], a.status)}</div><p style="margin:6px 0;font-size:13px">${esc(a.desc)}</p>${a.status === 'PENDING' ? `<textarea id="c-${a.id}" placeholder="Un commentaire ? (facultatif)"></textarea><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><button class="btn" data-decide="${a.id}:REJECTED">✕ Demander des modifs</button><button class="btn p" data-decide="${a.id}:APPROVED">✓ Approuver</button></div>` : a.comment ? `<small class="muted">Votre commentaire : « ${esc(a.comment)} »</small>` : ''}</div>`).join('') : ''}
+  ${T === 'proposal' ? qs.map((q) => `<div class="card" style="margin-bottom:10px"><div class="card-h"><h3>${esc(q.title)}</h3>${badge(O.qstatus, q.status)}</div><ul class="list">${q.lines.map((l) => `<li><span style="flex:1">${esc(l.desc)} <small class="muted">× ${l.qty}</small></span><span class="num">${eur(l.qty * l.price * (1 - l.disc / 100))}</span></li>`).join('')}</ul><div class="card-b" style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--line)"><span>Total TTC <b style="font-size:17px">${eur(totals(q).total)}</b></span>${q.status === 'SENT' ? `<button class="btn p" data-qs-portal="${q.id}">✓ Approuver la proposition</button>` : ''}</div></div>`).join('') || '<div class="card empty">Aucune proposition</div>' : ''}
+  ${T === 'messages' ? `<div class="card"><div class="card-b">${(S.messages || []).map((m) => `<div style="display:flex;${m.client ? 'justify-content:flex-end' : ''};margin-bottom:8px"><div style="max-width:80%;background:${m.client ? 'var(--coral-l)' : 'var(--beige)'};border-radius:14px;padding:8px 12px;font-size:13px">${esc(m.text)}<br><small class="muted">${m.client ? 'Vous' : esc(user(p.managerId).name)} · ${fmtDT(m.at)}</small></div></div>`).join('') || '<p class="muted">Écrivez à votre organisatrice.</p>'}</div><div class="toolbar" style="border-top:1px solid var(--line);border-bottom:0"><input class="inp" id="msg" placeholder="Votre message…" style="flex:1"><button class="btn p" data-a="send-msg">Envoyer</button></div></div>` : ''}</div>`
+}
+
+/* ───────────── Forms (sheets) ───────────── */
+const FORMS = {
+  lead: { title: 'Nouveau lead', fields: [['firstName', 'Prénom', 'text', 1], ['lastName', 'Nom', 'text', 1], ['company', 'Société'], ['email', 'Email', 'email'], ['phone', 'Téléphone'], ['service', 'Service demandé', O.service], ['source', 'Source', O.source], ['budget', 'Budget estimé (€)', 'number'], ['stage', 'Étape', O.stage], ['prio', 'Priorité', O.prio], ['ownerId', 'Commercial', () => S.users.map((u) => [u.id, u.name])], ['followUp', 'Prochaine relance', 'datetime-local'], ['notes', 'Notes', 'textarea']] },
+  client: { title: 'Nouveau client', fields: [['firstName', 'Prénom', 'text', 1], ['lastName', 'Nom', 'text', 1], ['company', 'Société'], ['email', 'Email (détection des doublons)', 'email'], ['phone', 'Téléphone'], ['city', 'Ville'], ['status', 'Statut', [['ACTIVE', 'Actif'], ['VIP', 'VIP']]], ['notes', 'Notes internes', 'textarea']] },
+  project: { title: 'Nouveau projet', fields: [['name', 'Nom du projet', 'text', 1, 1], ['clientId', 'Client', () => S.clients.map((c) => [c.id, fullName(c)]), 1], ['type', 'Type', O.ptype], ['managerId', 'Responsable', () => S.users.map((u) => [u.id, u.name])], ['start', 'Date', 'date', 1], ['location', 'Lieu'], ['budget', 'Budget (€)', 'number'], ['status', 'Statut', O.pstatus]], hint: 'Une checklist par défaut est générée selon le type de projet.' },
+  task: { title: 'Nouvelle tâche', fields: [['title', 'Titre', 'text', 1, 1], ['assigneeId', 'Assigné à', () => S.users.map((u) => [u.id, u.name])], ['prio', 'Priorité', O.prio], ['due', 'Échéance', 'datetime-local', 1], ['projectId', 'Projet lié', () => S.projects.map((p) => [p.id, p.name]), 0]] },
+  supplier: { title: 'Nouveau fournisseur', fields: [['name', 'Nom de la société', 'text', 1, 1], ['cats', 'Catégories (plusieurs possibles)', 'multi', 1, 1], ['city', 'Ville'], ['rating', 'Note interne (1-5)', 'number'], ['email', 'Email', 'email'], ['phone', 'Téléphone'], ['status', 'Statut', O.sstatus]], hint: 'Les doublons de nom sont détectés (accents et formes juridiques ignorés).' },
+  quote: { title: 'Nouveau devis', fields: [['title', 'Titre', 'text', 1, 1], ['clientId', 'Client', () => S.clients.map((c) => [c.id, fullName(c)]), 1], ['projectId', 'Projet', () => S.projects.map((p) => [p.id, p.name])], ['discount', 'Remise globale (%)', 'number']], hint: 'Ajoutez les lignes depuis le catalogue sur l’écran suivant.' },
+  meeting: { title: 'Nouvelle réunion', fields: [['title', 'Titre', 'text', 1, 1], ['start', 'Début', 'datetime-local', 1], ['ownerId', 'Organisateur', () => S.users.map((u) => [u.id, u.name])]] },
+}
+function openForm(kind, values = {}, editId = null) { UI.sheet = { kind, values, editId, errors: {} }; render() }
+function sheetHtml() {
+  const sh = UI.sheet; if (!sh) return ''
+  const f = FORMS[sh.kind], v = sh.values
+  const field = ([k, label, type = 'text', req, wide]) => {
+    const list = typeof type === 'function' ? type() : Array.isArray(type) ? type : null
+    const val = v[k] ?? ''
+    let ctl
+    if (list) ctl = `<select class="sel" name="${k}">${options(list, val, req ? null : '—')}</select>`
+    else if (type === 'textarea') ctl = `<textarea name="${k}">${esc(val)}</textarea>`
+    else if (type === 'multi') ctl = `<div style="display:flex;flex-wrap:wrap;gap:6px;border:1px solid var(--line2);border-radius:8px;padding:8px">${O.cats.map((c) => `<label style="margin:0;font-weight:400;display:inline-flex;gap:4px;align-items:center;border:1px solid var(--line);border-radius:6px;padding:2px 8px;cursor:pointer"><input type="checkbox" name="cats" value="${esc(c)}" ${(val || []).includes(c) ? 'checked' : ''}> ${esc(c)}</label>`).join('')}</div>`
+    else ctl = `<input class="inp" type="${type}" name="${k}" value="${esc(type === 'date' ? toDateInput(val) : type === 'datetime-local' && val ? new Date(new Date(val).getTime() - new Date(val).getTimezoneOffset() * 60000).toISOString().slice(0, 16) : val)}">`
+    return `<div class="${wide || type === 'textarea' || type === 'multi' ? 'w' : ''}"><label>${esc(label)}${req ? ' <span style="color:var(--coral)">*</span>' : ''}</label>${ctl}${sh.errors[k] ? `<div class="err">${esc(sh.errors[k])}</div>` : ''}</div>`
+  }
+  return `<div class="overlay" data-a="close-sheet"></div><div class="sheet"><div class="sheet-h"><div><h2>${sh.editId ? 'Modifier' : esc(f.title)}</h2>${f.hint ? `<p>${esc(f.hint)}</p>` : ''}</div><button class="icon-btn" data-a="close-sheet">✕</button></div><form class="sheet-b" id="sheet-form"><div class="form">${f.fields.map(field).join('')}</div></form><div class="sheet-f"><button class="btn g" data-a="close-sheet">Annuler</button><button class="btn p" data-a="submit-sheet">${sh.editId ? 'Enregistrer' : 'Créer'}</button></div></div>`
+}
+function submitSheet() {
+  const sh = UI.sheet, f = FORMS[sh.kind], form = $('#sheet-form'), fd = new FormData(form), v = {}, errors = {}
+  f.fields.forEach(([k, label, type = 'text', req]) => {
+    let val = type === 'multi' ? fd.getAll('cats') : (fd.get(k) ?? '').toString().trim()
+    if (type === 'number' && val !== '') { val = Number(val); if (!isFinite(val)) errors[k] = 'Nombre invalide' }
+    if ((type === 'date' || type === 'datetime-local') && val) val = new Date(type === 'date' ? val + 'T00:00:00' : val).toISOString()
+    if (type === 'email' && val && !/^\S+@\S+\.\S+$/.test(val)) errors[k] = 'Email invalide'
+    if (req && (val === '' || (Array.isArray(val) && !val.length))) errors[k] = `${label.replace(/\s*\(.*\)/, '')} est obligatoire`
+    v[k] = val === '' ? null : val
+  })
+  // duplicate prevention
+  if (sh.kind === 'client' && v.email) { const d = S.clients.find((c) => c.id !== sh.editId && c.email?.toLowerCase() === v.email.toLowerCase()); if (d) errors.email = `Un client existe déjà avec cet email (${d.ref} — ${fullName(d)})` }
+  if (sh.kind === 'supplier' && v.name) { const d = S.suppliers.find((s) => s.id !== sh.editId && norm(s.name) === norm(v.name)); if (d) errors.name = `${d.name} existe déjà (${d.ref}). Ajoutez plutôt des catégories à la fiche existante.` }
+  if (sh.kind === 'supplier' && v.rating != null && (v.rating < 1 || v.rating > 5)) errors.rating = 'Entre 1 et 5'
+  if (Object.keys(errors).length) { sh.errors = errors; sh.values = { ...sh.values, ...v }; render(); toast('Corrigez les champs en rouge.', true); return }
+  const coll = { lead: 'leads', client: 'clients', project: 'projects', task: 'tasks', supplier: 'suppliers', quote: 'quotes', meeting: 'meetings' }[sh.kind]
+  if (sh.editId) { Object.assign(S[coll].find((x) => x.id === sh.editId), v); log(`Fiche modifiée : ${v.name || v.title || fullName(v)}`); toast('Modifications enregistrées') }
+  else {
+    const prefix = { lead: 'LEAD', client: 'CLI', project: 'PRJ', task: 'TSK', supplier: 'SUP', quote: 'Q' }[sh.kind]
+    const rec = { id: uid(), ...(prefix ? { ref: nextRef(prefix) } : {}), ...sh.values, ...v, created: new Date().toISOString() }
+    if (sh.kind === 'lead') { Object.assign(rec, { stage: rec.stage || 'NEW', prio: rec.prio || 'MEDIUM', ownerId: rec.ownerId || UI.me, history: [{ type: 'Note', text: 'Lead créé.', at: rec.created }] }); S.leads.push(rec); onLeadCreated(rec); if (rec.stage === 'WON') onLeadWon(rec) }
+    else if (sh.kind === 'client') { rec.status = rec.status || 'ACTIVE'; S.clients.push(rec); log(`Nouveau client ${fullName(rec)}`) }
+    else if (sh.kind === 'project') { Object.assign(rec, { type: rec.type || 'PRIVATE', status: rec.status || 'PLANNING', managerId: rec.managerId || UI.me }); S.projects.push(rec); (CHECKLIST[rec.type] || CHECKLIST.DEFAULT).forEach((t, i) => S.tasks.push({ id: uid(), ref: nextRef('TSK'), title: t, projectId: rec.id, assigneeId: rec.managerId, prio: i ? 'MEDIUM' : 'HIGH', status: 'TODO', due: addD(3 + i * 7, 17), auto: true })); log(`Projet ${rec.ref} créé — checklist générée automatiquement`) }
+    else if (sh.kind === 'task') { Object.assign(rec, { prio: rec.prio || 'MEDIUM', status: 'TODO', assigneeId: rec.assigneeId || UI.me }); S.tasks.push(rec); log(`Nouvelle tâche : ${rec.title}`) }
+    else if (sh.kind === 'supplier') { Object.assign(rec, { status: rec.status || 'ACTIVE', rating: rec.rating || 3, fav: false }); S.suppliers.push(rec); log(`Nouveau fournisseur ${rec.name}`) }
+    else if (sh.kind === 'quote') { Object.assign(rec, { status: 'DRAFT', date: rec.created, discount: rec.discount || 0, lines: [] }); S.quotes.push(rec); log(`Devis ${rec.ref} créé`) }
+    else if (sh.kind === 'meeting') { S.meetings.push(rec); log(`Réunion planifiée : ${rec.title}`) }
+    toast(`${FORMS[sh.kind].title.replace('Nouvelle ', '').replace('Nouveau ', '')} créé(e)`)
+    UI.sheet = null; save()
+    if (['lead', 'client', 'project', 'supplier', 'quote'].includes(sh.kind)) return go(coll, rec.id)
+  }
+  UI.sheet = null; save(); render()
+}
+
+/* ───────────── Search palette ───────────── */
+function paletteHtml() {
+  if (!UI.palette) return ''
+  return `<div class="overlay" data-a="close-palette"></div><div class="modal"><input id="pq" placeholder="Rechercher clients, leads, projets, fournisseurs, devis…" autocomplete="off"><div class="res" id="pres"><div class="empty">Tapez au moins 2 caractères</div></div></div>`
+}
+function searchResults(t) {
+  t = t.toLowerCase(); if (t.length < 2) return '<div class="empty">Tapez au moins 2 caractères</div>'
+  const g = [['Clients', 'clients', S.clients, (x) => fullName(x), (x) => x.company || x.ref], ['Leads', 'leads', S.leads, (x) => fullName(x), (x) => x.service], ['Projets', 'projects', S.projects, (x) => x.name, (x) => x.ref], ['Fournisseurs', 'suppliers', S.suppliers, (x) => x.name, (x) => x.cats.join(', ')], ['Devis', 'quotes', S.quotes, (x) => x.title, (x) => x.ref]]
+  const html = g.filter((x) => can(x[1])).map(([label, route, list, title, sub]) => { const hits = list.filter((x) => JSON.stringify(x).toLowerCase().includes(t)).slice(0, 5); return hits.length ? `<div class="rt">${label}</div>` + hits.map((x) => `<button data-go="${route}" data-id="${x.id}">${esc(title(x))} <small>${esc(sub(x) || '')}</small></button>`).join('') : '' }).join('')
+  return html || '<div class="empty">Aucun résultat</div>'
+}
+
+/* ───────────── Render ───────────── */
+function render() {
+  const pages = { dashboard: pageDashboard, leads: pageLeads, clients: pageClients, projects: pageProjects, tasks: pageTasks, calendar: pageCalendar, suppliers: pageSuppliers, quotes: pageQuotes, portal: pagePortal }
+  if (UI.route !== 'portal' && !can(UI.route)) UI.route = 'dashboard'
+  UI.crumb = null
+  const body = pages[UI.route]()
+  if (body === undefined) return
+  $('#root').innerHTML = shell(body) + sheetHtml() + paletteHtml()
+  const q = $('#q'); if (q && document.activeElement?.id !== 'q' && UI.q) { q.focus(); q.setSelectionRange(UI.q.length, UI.q.length) }
+  if (UI.palette) $('#pq').focus()
+}
+
+/* ───────────── Events ───────────── */
+document.addEventListener('click', (e) => {
+  const el = e.target.closest('[data-go],[data-a],[data-new],[data-edit],[data-toggle],[data-stage],[data-view],[data-filter],[data-tab],[data-me],[data-fav],[data-qs],[data-delline],[data-decide],[data-ptab],[data-qs-portal]')
+  if (!el) { if (UI.menu && !e.target.closest('.menu')) { UI.menu = null; render() } return }
+  if (el.matches('select')) return
+  const d = el.dataset
+  if (d.toggle) { e.stopPropagation(); const t = S.tasks.find((x) => x.id === d.toggle); t.status = t.status === 'DONE' ? 'TODO' : 'DONE'; if (t.status === 'DONE') log(`Tâche terminée : ${t.title}`); save(); toast(t.status === 'DONE' ? 'Tâche terminée' : 'Tâche rouverte'); return render() }
+  if (d.fav) { e.stopPropagation(); const s = supplier(d.fav); s.fav = !s.fav; save(); return render() }
+  if (d.new) { e.stopPropagation(); UI.menu = null; const pre = {}; if (d.project) { pre.projectId = d.project; pre.clientId = project(d.project).clientId } if (d.client) pre.clientId = d.client; if (d.lead) { pre.leadId = d.lead; pre.title = 'Relancer ' + fullName(S.leads.find((l) => l.id === d.lead)) } if (d.new === 'task') pre.due = addD(1, 10); if (d.new === 'meeting') pre.start = addD(1, 10); return openForm(d.new, pre) }
+  if (d.edit) { const coll = { lead: 'leads', client: 'clients', project: 'projects', supplier: 'suppliers' }[d.edit]; const rec = S[coll].find((x) => x.id === UI.id); return openForm(d.edit, { ...rec }, rec.id) }
+  if (d.go) { if (el.closest('.kcard') && e.target.closest('[data-toggle]')) return; return go(d.go, d.id || null) }
+  if (d.view) { UI.view = d.view; return render() }
+  if (d.tab) { UI.tab = d.tab; return render() }
+  if (d.ptab) { UI.portalTab = d.ptab; return render() }
+  if (d.me) { UI.me = d.me; UI.menu = null; toast(`Connecté en tant que ${user(d.me).name} — ${ROLES[user(d.me).role].label}`); return go('dashboard') }
+  if (d.stage) { const l = S.leads.find((x) => x.id === UI.id); l.stage = d.stage; log(`${fullName(l)} → ${opt(O.stage, d.stage)[1]}`); if (d.stage === 'WON') { onLeadWon(l); toast('Affaire gagnée : client et projet créés automatiquement') } else toast('Étape mise à jour'); save(); return render() }
+  if (d.qs) { const q = S.quotes.find((x) => x.id === UI.id); if (d.qs === 'APPROVED' && !q.lines.length) return toast('Ajoutez au moins une ligne.', true); q.status = d.qs; if (d.qs === 'APPROVED') onQuoteApproved(q); else log(`Devis ${q.ref} → ${opt(O.qstatus, d.qs)[1]}`); save(); toast('Statut du devis mis à jour'); return render() }
+  if (d.qsPortal) { const q = S.quotes.find((x) => x.id === d.qsPortal); q.status = 'APPROVED'; onQuoteApproved(q); save(); toast('Proposition approuvée — votre organisatrice est prévenue'); return render() }
+  if (d.delline) { const q = S.quotes.find((x) => x.id === UI.id); q.lines.splice(+d.delline, 1); save(); return render() }
+  if (d.decide) { const [id, st] = d.decide.split(':'); const a = S.approvals.find((x) => x.id === id); a.status = st; a.comment = ($('#c-' + id)?.value || '').trim(); log(`Le client a ${st === 'APPROVED' ? 'approuvé' : 'demandé des modifications sur'} « ${a.title} »`); notify(`Validation client : ${a.title}`); save(); toast(st === 'APPROVED' ? 'Approuvé, merci !' : 'Votre retour a été transmis'); return render() }
+  const A = d.a
+  if (A === 'collapse') { UI.collapsed = !UI.collapsed; return render() }
+  if (A === 'burger') return $('aside').classList.toggle('open')
+  if (A === 'palette') { UI.palette = true; return render() }
+  if (A === 'close-palette') { UI.palette = false; return render() }
+  if (A?.startsWith('menu-')) { e.stopPropagation(); const m = A.slice(5); UI.menu = UI.menu === m ? null : m; return render() }
+  if (A === 'read-all') { S.notifs.forEach((n) => (n.read = true)); save(); return render() }
+  if (A === 'close-sheet') { UI.sheet = null; return render() }
+  if (A === 'submit-sheet') return submitSheet()
+  if (A === 'reset') { if (confirm('Réinitialiser toutes les données de démo ?')) { S = seed(); save(); toast('Démo réinitialisée'); go('dashboard') } return }
+  if (A === 'lead-client') { const l = S.leads.find((x) => x.id === UI.id); const dup = S.clients.find((c) => c.email?.toLowerCase() === l.email?.toLowerCase()); if (dup) { l.clientId = dup.id; toast('Rattaché au client existant (doublon évité)') } else { const c = { id: uid(), ref: nextRef('CLI'), firstName: l.firstName, lastName: l.lastName, company: l.company, email: l.email, phone: l.phone, city: '', status: 'ACTIVE', notes: '', created: new Date().toISOString() }; S.clients.push(c); l.clientId = c.id; toast('Client créé') } log(`Lead ${l.ref} converti en client`); save(); return render() }
+  if (A === 'lead-won') { const l = S.leads.find((x) => x.id === UI.id); l.stage = 'WON'; onLeadWon(l); save(); toast('Affaire gagnée : projet créé avec sa checklist'); return go('projects', l.projectId) }
+  if (A === 'delete-lead') { if (!confirm('Supprimer ce lead ?')) return; S.leads = S.leads.filter((x) => x.id !== UI.id); save(); toast('Lead supprimé'); return go('leads') }
+  if (A === 'add-history') { const txt = $('#h-text').value.trim(); if (!txt) return toast('Écrivez un résumé.', true); S.leads.find((x) => x.id === UI.id).history.push({ type: $('#h-type').value, text: txt, at: new Date().toISOString() }); save(); toast("Ajouté à l'historique"); return render() }
+  if (A === 'add-approval') { const t = $('#appr-title').value.trim(); if (!t) return toast('Indiquez un titre.', true); S.approvals.push({ id: uid(), projectId: UI.id, title: t, desc: '', status: 'PENDING' }); log(`Validation demandée au client : ${t}`); save(); toast('Visible dans le portail client'); return render() }
+  if (A === 'add-line') { S.quotes.find((x) => x.id === UI.id).lines.push({ desc: 'Prestation sur mesure', qty: 1, price: 0, cost: 0, disc: 0, tax: 20 }); save(); return render() }
+  if (A === 'dup-quote') { const q = S.quotes.find((x) => x.id === UI.id); const c = { ...JSON.parse(JSON.stringify(q)), id: uid(), ref: nextRef('Q'), status: 'DRAFT', date: new Date().toISOString() }; S.quotes.push(c); save(); toast(`Dupliqué en ${c.ref}`); return go('quotes', c.id) }
+  if (A === 'print') { const w = window.open('', '_blank'); if (!w) return toast('Autorisez les fenêtres pop-up pour imprimer.', true); w.document.write(`<title>Devis</title>${$('#print-area').innerHTML}<script>print()<\/script>`); w.document.close(); return }
+  if (A === 'export') return exportCsv()
+  if (A === 'cal-prev' || A === 'cal-next') { const a = UI.calMonth ? new Date(UI.calMonth) : new Date(); a.setDate(1); a.setMonth(a.getMonth() + (A === 'cal-next' ? 1 : -1)); UI.calMonth = a.toISOString(); return render() }
+  if (A === 'cal-today') { UI.calMonth = null; return render() }
+  if (A === 'send-msg') { const t = $('#msg').value.trim(); if (!t) return; S.messages = S.messages || []; S.messages.push({ text: t, client: true, at: new Date().toISOString() }); notify('Nouveau message client'); save(); return render() }
+})
+document.addEventListener('dblclick', (e) => { const c = e.target.closest('[data-cnew]'); if (c) openForm('meeting', { start: new Date(c.dataset.cnew + 'T10:00').toISOString() }) })
+document.addEventListener('input', (e) => {
+  if (e.target.id === 'q') { UI.q = e.target.value; clearTimeout(window._qt); window._qt = setTimeout(render, 200) }
+  if (e.target.id === 'pq') $('#pres').innerHTML = searchResults(e.target.value)
+})
+document.addEventListener('change', (e) => {
+  const d = e.target.dataset
+  if (d.filter !== undefined) { UI.filter[d.filter] = e.target.value; return render() }
+  if (e.target.matches('[data-pstatus]')) { const p = project(UI.id); p.status = e.target.value; log(`${p.ref} → ${opt(O.pstatus, p.status)[1]}`); save(); toast('Statut mis à jour'); return render() }
+  if (e.target.matches('[data-sstatus]')) { const s = supplier(UI.id); s.status = e.target.value; log(`${s.name} → ${opt(O.sstatus, s.status)[1]}`); save(); toast(s.status === 'SUSPENDED' ? 'Fournisseur suspendu : retiré des sélections' : 'Statut mis à jour'); return render() }
+  if (d.line !== undefined) { const q = S.quotes.find((x) => x.id === UI.id); const l = q.lines[+d.line]; l[d.f] = d.f === 'desc' ? e.target.value : Math.max(0, Number(String(e.target.value).replace(',', '.')) || 0); save(); return render() }
+  if (e.target.id === 'q-disc') { const q = S.quotes.find((x) => x.id === UI.id); q.discount = Math.min(100, Math.max(0, Number(e.target.value) || 0)); save(); return render() }
+  if (e.target.id === 'add-svc' && e.target.value) { const s = S.services.find((x) => x.id === e.target.value); S.quotes.find((x) => x.id === UI.id).lines.push({ serviceId: s.id, desc: s.name, qty: 1, price: s.price, cost: s.cost, disc: 0, tax: 20 }); save(); toast(`${s.name} ajouté`); return render() }
+})
+document.addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); UI.palette = true; render() }
+  if (e.key === 'Escape' && (UI.palette || UI.sheet || UI.menu)) { UI.palette = false; UI.sheet = null; UI.menu = null; render() }
+  if (e.key === 'Enter' && e.target.id === 'pq') $('#pres button')?.click()
+})
+/* drag & drop: leads (stage), projects (status), tasks (status), calendar (date) */
+let drag = null
+document.addEventListener('dragstart', (e) => { const el = e.target.closest('[data-drag],[data-pdrag],[data-tdrag],[data-cdrag]'); if (!el) return; drag = { ...el.dataset }; el.classList.add('drag'); e.dataTransfer.effectAllowed = 'move' })
+document.addEventListener('dragend', (e) => { e.target.classList?.remove('drag'); document.querySelectorAll('.over').forEach((x) => x.classList.remove('over')) })
+document.addEventListener('dragover', (e) => { const z = e.target.closest('[data-drop],[data-pdrop],[data-tdrop],[data-cdrop]'); if (z && drag) { e.preventDefault(); document.querySelectorAll('.over').forEach((x) => x !== z && x.classList.remove('over')); z.classList.add('over') } })
+document.addEventListener('drop', (e) => {
+  const z = e.target.closest('[data-drop],[data-pdrop],[data-tdrop],[data-cdrop]'); if (!z || !drag) return; e.preventDefault()
+  const d = z.dataset
+  if (d.drop && drag.drag) { const l = S.leads.find((x) => x.id === drag.drag); if (l.stage !== d.drop) { l.stage = d.drop; log(`${fullName(l)} → ${opt(O.stage, d.drop)[1]}`); if (d.drop === 'WON') { onLeadWon(l); toast('Affaire gagnée : client + projet + checklist créés automatiquement') } else toast(`Déplacé vers « ${opt(O.stage, d.drop)[1]} »`) } }
+  if (d.pdrop && drag.pdrag) { const p = project(drag.pdrag); p.status = d.pdrop; toast('Statut du projet mis à jour') }
+  if (d.tdrop && drag.tdrag) { const t = S.tasks.find((x) => x.id === drag.tdrag); t.status = d.tdrop; toast('Tâche mise à jour') }
+  if (d.cdrop && drag.cdrag) { const [k, id] = drag.cdrag.split(':'); const rec = k === 'm' ? S.meetings.find((x) => x.id === id) : k === 't' ? S.tasks.find((x) => x.id === id) : S.leads.find((x) => x.id === id); const f = k === 'm' ? 'start' : k === 't' ? 'due' : 'followUp'; const old = new Date(rec[f]); const nd = new Date(d.cdrop + 'T00:00:00'); nd.setHours(old.getHours(), old.getMinutes()); rec[f] = nd.toISOString(); toast('Replanifié au ' + fmtD(nd, { day: 'numeric', month: 'long' })) }
+  drag = null; save(); render()
+})
+function exportCsv() {
+  const map = { leads: [S.leads, ['ref', 'firstName', 'lastName', 'company', 'email', 'service', 'budget', 'stage']], clients: [S.clients, ['ref', 'firstName', 'lastName', 'company', 'email', 'city', 'status']], projects: [S.projects, ['ref', 'name', 'type', 'status', 'start', 'budget']], tasks: [S.tasks, ['ref', 'title', 'status', 'prio', 'due']], suppliers: [S.suppliers, ['ref', 'name', 'cats', 'city', 'rating', 'status']], quotes: [S.quotes, ['ref', 'title', 'status', 'date']] }
+  const [rows, cols] = map[UI.route] || []; if (!rows) return
+  const cell = (v) => { v = Array.isArray(v) ? v.join(' | ') : v ?? ''; v = String(v); return /[",;\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v }
+  const csv = '﻿' + [cols.join(','), ...rows.map((r) => cols.map((c) => cell(r[c])).join(','))].join('\r\n')
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); a.download = `${UI.route}.csv`; a.click(); toast('Export CSV téléchargé')
+}
+save(); render()
+</script>
+</body>
+</html>

@@ -38,6 +38,8 @@ COOKIE_SECURE=false SHOW_DEMO_ACCOUNTS=true pnpm start:lan   # listens on 0.0.0.
 ```
 Find your computer's local IP (macOS: `ipconfig getifaddr en0`, Windows: `ipconfig`) and open `http://<IP>:3000` in Safari on the iPhone. `COOKIE_SECURE=false` is needed because the LAN URL is plain http; never use it on a public deployment.
 
+**Standalone demo:** `docs/event-management-os-demo.html` is a single-file, offline, browser-only demo (data in localStorage) of the main flows — it is a simplified prototype, not the full app.
+
 **Offline preview:** open `docs/event-management-os-apercu.html` in any browser for screenshots of every module (desktop + iPhone, fictitious data).
 
 ## 2. Architecture
