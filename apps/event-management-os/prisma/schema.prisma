@@ -1,0 +1,1161 @@
+// Event Management OS — relational data model
+// Conventions:
+//  * Every business table carries `organizationId` (strict tenant isolation, enforced in lib/db scope helpers).
+//  * Money is stored as integer minor units (cents) to avoid floating point errors.
+//  * `deletedAt` = soft delete. Rows with a deletedAt are hidden everywhere except audit views.
+//  * `isDemo` flags fictitious demonstration data so it can be identified and purged.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ───────────────────────────── Tenancy & access ─────────────────────────────
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  currency  String   @default("EUR")
+  locale    String   @default("en")
+  taxRate   Float    @default(20)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users              User[]
+  roles              Role[]
+  clients            Client[]
+  contacts           Contact[]
+  leads              Lead[]
+  interactions       Interaction[]
+  projects           Project[]
+  events             Event[]
+  stays              Stay[]
+  conciergeRequests  ConciergeRequest[]
+  partners           Partner[]
+  suppliers          Supplier[]
+  categories         Category[]
+  services           Service[]
+  reservations       Reservation[]
+  tasks              Task[]
+  calendarEvents     CalendarEvent[]
+  quotations         Quotation[]
+  invoices           Invoice[]
+  payments           Payment[]
+  commissions        Commission[]
+  documents          Document[]
+  notifications      Notification[]
+  activityLogs       ActivityLog[]
+  auditLogs          AuditLog[]
+  approvals          Approval[]
+  messages           Message[]
+  counters           Counter[]
+  reminders          Reminder[]
+  projectTemplates   ProjectTemplate[]
+}
+
+model Role {
+  id             String   @id @default(cuid())
+  organizationId String
+  key            String // admin | management | sales | project_manager | team_member | client | custom
+  name           String
+  description    String?
+  permissions    String[] // e.g. "leads:read", "finance:write", "*"
+  isSystem       Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  users        User[]
+
+  @@unique([organizationId, key])
+}
+
+model User {
+  id             String    @id @default(cuid())
+  organizationId String
+  roleId         String
+  clientId       String? // set for client-portal users
+  email          String    @unique
+  name           String
+  title          String?
+  passwordHash   String
+  locale         String    @default("en")
+  color          String    @default("#F07F73")
+  active         Boolean   @default(true)
+  lastLoginAt    DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+
+  organization       Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  role               Role               @relation(fields: [roleId], references: [id])
+  client             Client?            @relation("PortalUsers", fields: [clientId], references: [id])
+  ownedClients       Client[]           @relation("ClientOwner")
+  assignedLeads      Lead[]             @relation("LeadAssignee")
+  managedProjects    Project[]          @relation("ProjectManager")
+  projectMemberships ProjectMember[]
+  eventMemberships   EventMember[]
+  assignedTasks      Task[]             @relation("TaskAssignee")
+  createdTasks       Task[]             @relation("TaskCreator")
+  taskComments       TaskComment[]
+  conciergeAssigned  ConciergeRequest[] @relation("ConciergeAgent")
+  calendarEvents     CalendarEvent[]
+  interactions       Interaction[]
+  notifications      Notification[]
+  activityLogs       ActivityLog[]
+  auditLogs          AuditLog[]
+  documents          Document[]
+  messages           Message[]
+  reminders          Reminder[]
+
+  @@index([organizationId])
+}
+
+model Counter {
+  organizationId String
+  key            String
+  value          Int    @default(0)
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@id([organizationId, key])
+}
+
+// ───────────────────────────── CRM ─────────────────────────────
+
+enum ClientType {
+  INDIVIDUAL
+  COMPANY
+}
+
+enum ClientStatus {
+  ACTIVE
+  VIP
+  INACTIVE
+}
+
+model Client {
+  id             String       @id @default(cuid())
+  organizationId String
+  ref            String
+  type           ClientType   @default(INDIVIDUAL)
+  status         ClientStatus @default(ACTIVE)
+  firstName      String
+  lastName       String
+  company        String?
+  email          String?
+  emailNormalized String?
+  phone          String?
+  whatsapp       String?
+  address        String?
+  city           String?
+  country        String?
+  language       String       @default("en")
+  preferences    String?
+  notes          String?
+  ownerId        String?
+  isDemo         Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  deletedAt      DateTime?
+
+  organization      Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  owner             User?              @relation("ClientOwner", fields: [ownerId], references: [id])
+  contacts          Contact[]
+  leads             Lead[]
+  interactions      Interaction[]
+  projects          Project[]
+  events            Event[]
+  stays             Stay[]
+  conciergeRequests ConciergeRequest[]
+  tasks             Task[]
+  calendarEvents    CalendarEvent[]
+  quotations        Quotation[]
+  invoices          Invoice[]
+  documents         Document[]
+  portalUsers       User[]             @relation("PortalUsers")
+
+  @@unique([organizationId, ref])
+  @@unique([organizationId, emailNormalized])
+  @@index([organizationId, deletedAt])
+}
+
+model Contact {
+  id             String   @id @default(cuid())
+  organizationId String
+  clientId       String
+  name           String
+  role           String?
+  email          String?
+  phone          String?
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  client       Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
+}
+
+enum LeadStage {
+  NEW
+  QUALIFICATION
+  CONTACTED
+  MEETING
+  PROPOSAL
+  NEGOTIATION
+  WON
+  LOST
+  ARCHIVED
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+model Lead {
+  id               String    @id @default(cuid())
+  organizationId   String
+  ref              String
+  firstName        String
+  lastName         String
+  company          String?
+  email            String?
+  phone            String?
+  whatsapp         String?
+  city             String?
+  country          String?
+  source           String?
+  serviceRequested String?
+  estimatedBudget  Int? // cents
+  eventDate        DateTime?
+  assignedToId     String?
+  priority         Priority  @default(MEDIUM)
+  stage            LeadStage @default(NEW)
+  position         Float     @default(0)
+  nextFollowUp     DateTime?
+  notes            String?
+  lostReason       String?
+  clientId         String?
+  projectId        String?   @unique
+  isDemo           Boolean   @default(false)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  deletedAt        DateTime?
+
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  assignedTo   User?         @relation("LeadAssignee", fields: [assignedToId], references: [id])
+  client       Client?       @relation(fields: [clientId], references: [id])
+  project      Project?      @relation(fields: [projectId], references: [id])
+  interactions Interaction[]
+  tasks        Task[]
+
+  @@unique([organizationId, ref])
+  @@index([organizationId, stage, deletedAt])
+}
+
+enum InteractionType {
+  NOTE
+  CALL
+  EMAIL
+  WHATSAPP
+  MEETING
+}
+
+model Interaction {
+  id             String          @id @default(cuid())
+  organizationId String
+  type           InteractionType @default(NOTE)
+  summary        String
+  occurredAt     DateTime        @default(now())
+  leadId         String?
+  clientId       String?
+  projectId      String?
+  userId         String?
+  createdAt      DateTime        @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  lead         Lead?        @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  client       Client?      @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  project      Project?     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user         User?        @relation(fields: [userId], references: [id])
+}
+
+// ───────────────────────────── Operations ─────────────────────────────
+
+enum ProjectType {
+  WEDDING
+  BIRTHDAY
+  PRIVATE_EVENT
+  CORPORATE_EVENT
+  TRAVEL
+  CONCIERGE
+  INTERNAL
+  CUSTOM
+}
+
+enum ProjectStatus {
+  DRAFT
+  PLANNING
+  CONFIRMED
+  IN_PROGRESS
+  ON_HOLD
+  COMPLETED
+  CANCELLED
+}
+
+model Project {
+  id             String        @id @default(cuid())
+  organizationId String
+  ref            String
+  name           String
+  clientId       String?
+  managerId      String?
+  type           ProjectType   @default(CUSTOM)
+  description    String?
+  startDate      DateTime?
+  endDate        DateTime?
+  location       String?
+  budget         Int? // cents
+  status         ProjectStatus @default(PLANNING)
+  priority       Priority      @default(MEDIUM)
+  progress       Int           @default(0)
+  isDemo         Boolean       @default(false)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  deletedAt      DateTime?
+
+  organization      Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  client            Client?            @relation(fields: [clientId], references: [id])
+  manager           User?              @relation("ProjectManager", fields: [managerId], references: [id])
+  members           ProjectMember[]
+  lead              Lead?
+  events            Event[]
+  stays             Stay[]
+  conciergeRequests ConciergeRequest[]
+  tasks             Task[]
+  services          ProjectService[]
+  suppliers         ProjectSupplier[]
+  quotations        Quotation[]
+  invoices          Invoice[]
+  payments          Payment[]
+  commissions       Commission[]
+  documents         Document[]
+  interactions      Interaction[]
+  calendarEvents    CalendarEvent[]
+  approvals         Approval[]
+  messages          Message[]
+
+  @@unique([organizationId, ref])
+  @@index([organizationId, status, deletedAt])
+}
+
+model ProjectMember {
+  projectId String
+  userId    String
+  role      String?
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([projectId, userId])
+}
+
+model ProjectSupplier {
+  projectId  String
+  supplierId String
+  role       String?
+  status     String  @default("PROPOSED") // PROPOSED | BOOKED | CONFIRMED | CANCELLED
+
+  project  Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  supplier Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+
+  @@id([projectId, supplierId])
+}
+
+model ProjectTemplate {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  projectType    ProjectType
+  tasks          Json // [{ title, offsetDays, priority }]
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+}
+
+enum EventStatus {
+  INQUIRY
+  PLANNING
+  CONFIRMED
+  IN_PRODUCTION
+  COMPLETED
+  CANCELLED
+}
+
+model Event {
+  id             String      @id @default(cuid())
+  organizationId String
+  ref            String
+  name           String
+  type           ProjectType @default(PRIVATE_EVENT)
+  clientId       String?
+  projectId      String?
+  date           DateTime?
+  startTime      String?
+  endTime        String?
+  location       String?
+  venue          String?
+  guestCount     Int?
+  theme          String?
+  concept        String?
+  palette        String[]
+  budget         Int? // cents
+  logistics      String?
+  status         EventStatus @default(PLANNING)
+  isDemo         Boolean     @default(false)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  deletedAt      DateTime?
+
+  organization Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  client       Client?             @relation(fields: [clientId], references: [id])
+  project      Project?            @relation(fields: [projectId], references: [id])
+  members      EventMember[]
+  timeline     EventTimelineItem[]
+  guests       Guest[]
+  services     ProjectService[]
+  tasks        Task[]
+  reservations Reservation[]
+  documents    Document[]
+
+  @@unique([organizationId, ref])
+  @@index([organizationId, date, deletedAt])
+}
+
+model EventMember {
+  eventId String
+  userId  String
+  role    String?
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([eventId, userId])
+}
+
+model EventTimelineItem {
+  id        String   @id @default(cuid())
+  eventId   String
+  time      String // "14:30"
+  title     String
+  category  String   @default("PROGRAM") // SETUP | DELIVERY | STAFF | TECH | GUESTS | PROGRAM | BREAKDOWN
+  notes     String?
+  done      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+}
+
+enum RsvpStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  MAYBE
+}
+
+model Guest {
+  id          String     @id @default(cuid())
+  eventId     String
+  name        String
+  email       String?
+  phone       String?
+  rsvp        RsvpStatus @default(PENDING)
+  dietary     String?
+  table       String?
+  plusOnes    Int        @default(0)
+  requirements String?
+  createdAt   DateTime   @default(now())
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+}
+
+enum StayStatus {
+  DRAFT
+  PROPOSED
+  CONFIRMED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+model Stay {
+  id             String     @id @default(cuid())
+  organizationId String
+  ref            String
+  clientId       String?
+  projectId      String?
+  title          String
+  destination    String
+  checkIn        DateTime?
+  checkOut       DateTime?
+  travelers      Int        @default(1)
+  accommodation  String?
+  transfers      String?
+  budget         Int? // cents
+  status         StayStatus @default(DRAFT)
+  notes          String?
+  shareToken     String?    @unique
+  isDemo         Boolean    @default(false)
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  deletedAt      DateTime?
+
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  client       Client?       @relation(fields: [clientId], references: [id])
+  project      Project?      @relation(fields: [projectId], references: [id])
+  reservations Reservation[]
+
+  @@unique([organizationId, ref])
+}
+
+enum ReservationStatus {
+  REQUESTED
+  PENDING
+  CONFIRMED
+  CANCELLED
+}
+
+model Reservation {
+  id             String            @id @default(cuid())
+  organizationId String
+  type           String            @default("ACTIVITY") // ACCOMMODATION | TRANSFER | ACTIVITY | RESTAURANT | EXPERIENCE | OTHER
+  title          String
+  date           DateTime
+  time           String?
+  location       String?
+  supplierId     String?
+  stayId         String?
+  eventId        String?
+  confirmation   String?
+  cost           Int? // cents
+  price          Int? // cents
+  status         ReservationStatus @default(REQUESTED)
+  notes          String?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  supplier     Supplier?    @relation(fields: [supplierId], references: [id])
+  stay         Stay?        @relation(fields: [stayId], references: [id], onDelete: Cascade)
+  event        Event?       @relation(fields: [eventId], references: [id], onDelete: Cascade)
+}
+
+enum ConciergeStatus {
+  NEW
+  IN_PROGRESS
+  WAITING_SUPPLIER
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+}
+
+model ConciergeRequest {
+  id             String          @id @default(cuid())
+  organizationId String
+  ref            String
+  clientId       String?
+  projectId      String?
+  category       String
+  title          String
+  description    String?
+  priority       Priority        @default(MEDIUM)
+  assignedToId   String?
+  supplierId     String?
+  requestedDate  DateTime?
+  deadline       DateTime?
+  cost           Int? // cents
+  price          Int? // cents
+  status         ConciergeStatus @default(NEW)
+  confirmation   String?
+  notes          String?
+  isDemo         Boolean         @default(false)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  deletedAt      DateTime?
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  client       Client?      @relation(fields: [clientId], references: [id])
+  project      Project?     @relation(fields: [projectId], references: [id])
+  assignedTo   User?        @relation("ConciergeAgent", fields: [assignedToId], references: [id])
+  supplier     Supplier?    @relation(fields: [supplierId], references: [id])
+
+  @@unique([organizationId, ref])
+}
+
+// ───────────────────────────── Network ─────────────────────────────
+
+enum PartnerStatus {
+  PROSPECT
+  ACTIVE
+  PAUSED
+  ARCHIVED
+}
+
+model Partner {
+  id              String        @id @default(cuid())
+  organizationId  String
+  ref             String
+  companyName     String
+  nameNormalized  String
+  category        String
+  partnershipType String? // REFERRAL | STRATEGIC | CO_MARKETING | RESELLER | AFFILIATE
+  city            String?
+  country         String?
+  contactName     String?
+  phone           String?
+  whatsapp        String?
+  email           String?
+  website         String?
+  instagram       String?
+  commissionRate  Float?
+  conditions      String?
+  status          PartnerStatus @default(ACTIVE)
+  notes           String?
+  isDemo          Boolean       @default(false)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  deletedAt       DateTime?
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  commissions  Commission[]
+  documents    Document[]
+
+  @@unique([organizationId, ref])
+  @@unique([organizationId, nameNormalized])
+}
+
+enum SupplierStatus {
+  ACTIVE
+  PREFERRED
+  ON_TRIAL
+  SUSPENDED
+  ARCHIVED
+}
+
+model Category {
+  id             String @id @default(cuid())
+  organizationId String
+  kind           String @default("SUPPLIER") // SUPPLIER | SERVICE
+  name           String
+  slug           String
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  suppliers    Supplier[]
+
+  @@unique([organizationId, kind, slug])
+}
+
+model Supplier {
+  id             String         @id @default(cuid())
+  organizationId String
+  ref            String
+  companyName    String
+  nameNormalized String
+  servicesOffered String?
+  city           String?
+  coverageArea   String?
+  phone          String?
+  whatsapp       String?
+  email          String?
+  instagram      String?
+  website        String?
+  pricing        String?
+  conditions     String?
+  availability   String?
+  status         SupplierStatus @default(ACTIVE)
+  rating         Int?           // 1..5 internal rating
+  favorite       Boolean        @default(false)
+  notes          String?
+  isDemo         Boolean        @default(false)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  deletedAt      DateTime?
+
+  organization      Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  categories        Category[]
+  contacts          SupplierContact[]
+  services          Service[]
+  projects          ProjectSupplier[]
+  reservations      Reservation[]
+  conciergeRequests ConciergeRequest[]
+  payments          Payment[]
+  documents         Document[]
+
+  // A supplier exists once per organization, whatever its number of categories.
+  @@unique([organizationId, ref])
+  @@unique([organizationId, nameNormalized])
+}
+
+model SupplierContact {
+  id         String  @id @default(cuid())
+  supplierId String
+  name       String
+  role       String?
+  email      String?
+  phone      String?
+  isPrimary  Boolean @default(false)
+
+  supplier Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+}
+
+// ───────────────────────────── Catalog ─────────────────────────────
+
+enum ServiceStatus {
+  ACTIVE
+  DRAFT
+  ARCHIVED
+}
+
+model Service {
+  id             String        @id @default(cuid())
+  organizationId String
+  ref            String
+  name           String
+  category       String
+  description    String?
+  supplierId     String?
+  cost           Int           @default(0) // cents, purchase cost
+  price          Int           @default(0) // cents, selling price
+  unit           String        @default("unit")
+  defaultQuantity Int          @default(1)
+  taxRate        Float         @default(20)
+  conditions     String?
+  imageUrl       String?
+  status         ServiceStatus @default(ACTIVE)
+  isDemo         Boolean       @default(false)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  deletedAt      DateTime?
+
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  supplier       Supplier?        @relation(fields: [supplierId], references: [id])
+  projectItems   ProjectService[]
+  quotationItems QuotationItem[]
+
+  @@unique([organizationId, ref])
+}
+
+model ProjectService {
+  id        String   @id @default(cuid())
+  projectId String?
+  eventId   String?
+  serviceId String
+  quantity  Int      @default(1)
+  unitCost  Int      @default(0)
+  unitPrice Int      @default(0)
+  notes     String?
+  createdAt DateTime @default(now())
+
+  project Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  event   Event?   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  service Service  @relation(fields: [serviceId], references: [id])
+}
+
+// ───────────────────────────── Work management ─────────────────────────────
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  WAITING
+  BLOCKED
+  COMPLETED
+  CANCELLED
+}
+
+model Task {
+  id             String     @id @default(cuid())
+  organizationId String
+  ref            String
+  title          String
+  description    String?
+  assigneeId     String?
+  createdById    String?
+  projectId      String?
+  clientId       String?
+  leadId         String?
+  eventId        String?
+  parentId       String?
+  priority       Priority   @default(MEDIUM)
+  status         TaskStatus @default(TODO)
+  dueDate        DateTime?
+  completedAt    DateTime?
+  position       Float      @default(0)
+  source         String? // "automation:new-lead" etc.
+  isDemo         Boolean    @default(false)
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  deletedAt      DateTime?
+
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  assignee     User?         @relation("TaskAssignee", fields: [assigneeId], references: [id])
+  createdBy    User?         @relation("TaskCreator", fields: [createdById], references: [id])
+  project      Project?      @relation(fields: [projectId], references: [id])
+  client       Client?       @relation(fields: [clientId], references: [id])
+  lead         Lead?         @relation(fields: [leadId], references: [id])
+  event        Event?        @relation(fields: [eventId], references: [id])
+  parent       Task?         @relation("Subtasks", fields: [parentId], references: [id], onDelete: Cascade)
+  subtasks     Task[]        @relation("Subtasks")
+  comments     TaskComment[]
+
+  @@unique([organizationId, ref])
+  @@index([organizationId, assigneeId, status])
+  @@index([organizationId, dueDate])
+}
+
+model TaskComment {
+  id        String   @id @default(cuid())
+  taskId    String
+  userId    String
+  body      String
+  createdAt DateTime @default(now())
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id])
+}
+
+model Reminder {
+  id             String    @id @default(cuid())
+  organizationId String
+  userId         String
+  title          String
+  remindAt       DateTime
+  entityType     String?
+  entityId       String?
+  sentAt         DateTime?
+  createdAt      DateTime  @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+enum CalendarItemType {
+  MEETING
+  EVENT
+  TASK
+  FOLLOW_UP
+  RESERVATION
+  DEADLINE
+  DELIVERY
+}
+
+model CalendarEvent {
+  id               String           @id @default(cuid())
+  organizationId   String
+  title            String
+  type             CalendarItemType @default(MEETING)
+  start            DateTime
+  end              DateTime?
+  allDay           Boolean          @default(false)
+  location         String?
+  description      String?
+  ownerId          String?
+  projectId        String?
+  clientId         String?
+  // Prepared for 2-way sync (e.g. Google Calendar). Not wired yet.
+  externalProvider String?
+  externalId       String?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  owner        User?        @relation(fields: [ownerId], references: [id])
+  project      Project?     @relation(fields: [projectId], references: [id])
+  client       Client?      @relation(fields: [clientId], references: [id])
+
+  @@index([organizationId, start])
+}
+
+// ───────────────────────────── Commercial & finance ─────────────────────────────
+
+enum QuoteStatus {
+  DRAFT
+  SENT
+  APPROVED
+  REJECTED
+  EXPIRED
+}
+
+model Quotation {
+  id             String      @id @default(cuid())
+  organizationId String
+  ref            String
+  title          String?
+  clientId       String
+  projectId      String?
+  issueDate      DateTime    @default(now())
+  expiryDate     DateTime?
+  status         QuoteStatus @default(DRAFT)
+  discountPct    Float       @default(0)
+  terms          String?
+  notes          String?
+  approvedAt     DateTime?
+  isDemo         Boolean     @default(false)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  deletedAt      DateTime?
+
+  organization Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  client       Client          @relation(fields: [clientId], references: [id])
+  project      Project?        @relation(fields: [projectId], references: [id])
+  items        QuotationItem[]
+  invoices     Invoice[]
+
+  @@unique([organizationId, ref])
+}
+
+model QuotationItem {
+  id          String  @id @default(cuid())
+  quotationId String
+  serviceId   String?
+  description String
+  quantity    Float   @default(1)
+  unitPrice   Int     @default(0)
+  unitCost    Int     @default(0)
+  discountPct Float   @default(0)
+  taxRate     Float   @default(20)
+  position    Int     @default(0)
+
+  quotation Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  service   Service?  @relation(fields: [serviceId], references: [id])
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PARTIALLY_PAID
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+model Invoice {
+  id             String        @id @default(cuid())
+  organizationId String
+  ref            String
+  clientId       String
+  projectId      String?
+  quotationId    String?
+  issueDate      DateTime      @default(now())
+  dueDate        DateTime?
+  status         InvoiceStatus @default(DRAFT)
+  terms          String?
+  notes          String?
+  isDemo         Boolean       @default(false)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  deletedAt      DateTime?
+
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  client       Client        @relation(fields: [clientId], references: [id])
+  project      Project?      @relation(fields: [projectId], references: [id])
+  quotation    Quotation?    @relation(fields: [quotationId], references: [id])
+  items        InvoiceItem[]
+  payments     Payment[]
+
+  @@unique([organizationId, ref])
+}
+
+model InvoiceItem {
+  id          String @id @default(cuid())
+  invoiceId   String
+  description String
+  quantity    Float  @default(1)
+  unitPrice   Int    @default(0)
+  discountPct Float  @default(0)
+  taxRate     Float  @default(20)
+  position    Int    @default(0)
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+}
+
+enum PaymentDirection {
+  INCOMING // client → agency
+  OUTGOING // agency → supplier
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  CANCELLED
+}
+
+model Payment {
+  id             String           @id @default(cuid())
+  organizationId String
+  direction      PaymentDirection @default(INCOMING)
+  kind           String           @default("PAYMENT") // DEPOSIT | BALANCE | PAYMENT | REFUND
+  invoiceId      String?
+  supplierId     String?
+  projectId      String?
+  amount         Int // cents
+  method         String? // TRANSFER | CARD | CASH | CHEQUE
+  dueDate        DateTime?
+  paidAt         DateTime?
+  status         PaymentStatus    @default(PENDING)
+  reference      String?
+  notes          String?
+  isDemo         Boolean          @default(false)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  invoice      Invoice?     @relation(fields: [invoiceId], references: [id])
+  supplier     Supplier?    @relation(fields: [supplierId], references: [id])
+  project      Project?     @relation(fields: [projectId], references: [id])
+
+  @@index([organizationId, status, dueDate])
+}
+
+model Commission {
+  id             String   @id @default(cuid())
+  organizationId String
+  partnerId      String
+  projectId      String?
+  rate           Float?
+  amount         Int // cents
+  status         String   @default("PENDING") // PENDING | PAID
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  partner      Partner      @relation(fields: [partnerId], references: [id])
+  project      Project?     @relation(fields: [projectId], references: [id])
+}
+
+// ───────────────────────────── Documents & collaboration ─────────────────────────────
+
+model Document {
+  id              String    @id @default(cuid())
+  organizationId  String
+  name            String
+  category        String    @default("OTHER") // CONTRACT | QUOTE | INVOICE | MOODBOARD | BRIEF | PHOTO | PRESENTATION | SUPPLIER | CLIENT | CONFIRMATION | OTHER
+  mimeType        String
+  size            Int
+  storageKey      String
+  version         Int       @default(1)
+  previousId      String?   @unique
+  clientId        String?
+  projectId       String?
+  eventId         String?
+  supplierId      String?
+  partnerId       String?
+  visibleToClient Boolean   @default(false)
+  uploadedById    String?
+  createdAt       DateTime  @default(now())
+  deletedAt       DateTime?
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  client       Client?      @relation(fields: [clientId], references: [id])
+  project      Project?     @relation(fields: [projectId], references: [id])
+  event        Event?       @relation(fields: [eventId], references: [id])
+  supplier     Supplier?    @relation(fields: [supplierId], references: [id])
+  partner      Partner?     @relation(fields: [partnerId], references: [id])
+  uploadedBy   User?        @relation(fields: [uploadedById], references: [id])
+  previous     Document?    @relation("Versions", fields: [previousId], references: [id])
+  next         Document?    @relation("Versions")
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model Approval {
+  id             String         @id @default(cuid())
+  organizationId String
+  projectId      String
+  title          String
+  description    String?
+  category       String         @default("GENERAL") // CONCEPT | MOODBOARD | PROPOSAL | QUOTE | TIMELINE | GENERAL
+  status         ApprovalStatus @default(PENDING)
+  clientComment  String?
+  decidedAt      DateTime?
+  createdAt      DateTime       @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model Message {
+  id             String   @id @default(cuid())
+  organizationId String
+  projectId      String
+  authorId       String
+  body           String
+  fromClient     Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  author       User         @relation(fields: [authorId], references: [id])
+}
+
+model Notification {
+  id             String    @id @default(cuid())
+  organizationId String
+  userId         String
+  type           String    @default("INFO") // INFO | FOLLOW_UP | OVERDUE | PAYMENT | APPROVAL | AUTOMATION
+  title          String
+  body           String?
+  link           String?
+  dedupeKey      String?
+  readAt         DateTime?
+  createdAt      DateTime  @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, dedupeKey])
+  @@index([userId, readAt])
+}
+
+model ActivityLog {
+  id             String   @id @default(cuid())
+  organizationId String
+  userId         String?
+  action         String // created | updated | deleted | converted | approved | paid | completed | automation
+  entityType     String
+  entityId       String
+  summary        String
+  link           String?
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User?        @relation(fields: [userId], references: [id])
+
+  @@index([organizationId, createdAt])
+  @@index([entityType, entityId])
+}
+
+model AuditLog {
+  id             String   @id @default(cuid())
+  organizationId String
+  userId         String?
+  action         String
+  entityType     String
+  entityId       String
+  before         Json?
+  after          Json?
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User?        @relation(fields: [userId], references: [id])
+
+  @@index([organizationId, createdAt])
+}

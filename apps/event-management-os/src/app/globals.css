@@ -1,0 +1,81 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  --color-coral: #f07f73;
+  --color-coral-light: #fce9e6;
+  --color-coral-dark: #b85650;
+  --color-offwhite: #faf9f7;
+  --color-beige: #f5f1ed;
+  --color-lightgray: #f3f4f6;
+  --color-ink: #252525;
+  --color-muted: #777777;
+  --color-line: #ecebe8;
+  --color-line-strong: #e2e0dc;
+
+  --radius-xl: 0.875rem;
+  --shadow-soft: 0 1px 2px rgb(37 37 37 / 0.04), 0 1px 1px rgb(37 37 37 / 0.02);
+  --shadow-pop: 0 12px 32px -8px rgb(37 37 37 / 0.14), 0 2px 6px rgb(37 37 37 / 0.05);
+
+  --animate-fade-in: fade-in 160ms ease-out;
+  --animate-slide-in: slide-in 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  --animate-pop: pop 140ms ease-out;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes slide-in {
+  from { transform: translateX(24px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+@keyframes pop {
+  from { transform: translateY(-4px) scale(0.98); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    background: var(--color-offwhite);
+    color: var(--color-ink);
+    font-feature-settings: 'cv11', 'ss01';
+  }
+  ::selection {
+    background: var(--color-coral-light);
+  }
+  :focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--color-coral) 60%, transparent);
+    outline-offset: 2px;
+  }
+  input[type='date']::-webkit-calendar-picker-indicator,
+  input[type='datetime-local']::-webkit-calendar-picker-indicator,
+  input[type='time']::-webkit-calendar-picker-indicator {
+    opacity: 0.45;
+    cursor: pointer;
+  }
+}
+
+@layer components {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: #e2e0dc transparent;
+  }
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: white;
+  }
+}
