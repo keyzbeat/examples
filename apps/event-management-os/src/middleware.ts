@@ -16,6 +16,7 @@ export async function middleware(req: NextRequest) {
   }
   // Client-portal accounts can never reach the back office.
   if (session.portal && !pathname.startsWith('/portal') && !pathname.startsWith('/api/documents') && !pathname.startsWith('/api/pdf')) {
+    if (pathname.startsWith('/api/')) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     const url = req.nextUrl.clone()
     url.pathname = '/portal'
     url.search = ''

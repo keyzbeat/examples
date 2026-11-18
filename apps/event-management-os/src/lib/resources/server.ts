@@ -364,6 +364,8 @@ export async function prepareData(tx: Tx, ctx: Ctx, def: ResourceDef, data: Reco
   if (def.key === 'tasks' && data.status) {
     data.completedAt = data.status === 'COMPLETED' ? new Date() : null
   }
+  if (def.key === 'payments' && data.status === 'PAID' && !data.paidAt) data.paidAt = new Date()
+  if (def.key === 'payments' && data.status === 'PENDING') data.paidAt = null
   if ((def.key === 'projects' || def.key === 'stays') && data.startDate && data.endDate && (data.endDate as Date) < (data.startDate as Date)) errors.endDate = 'End date must be after start date.'
   if (def.key === 'stays' && data.checkIn && data.checkOut && (data.checkOut as Date) < (data.checkIn as Date)) errors.checkOut = 'Check-out must be after check-in.'
   if (def.key === 'calendar' && data.start && data.end && (data.end as Date) < (data.start as Date)) errors.end = 'End must be after start.'

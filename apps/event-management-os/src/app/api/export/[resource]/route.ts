@@ -12,7 +12,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ resource
   const def = RESOURCES[resource as ResourceKey]
   if (!def) return NextResponse.json({ error: 'Unknown resource' }, { status: 404 })
   const ctx = await getCtx()
-  if (!ctx || !ctx.can(def.permission, 'read')) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  if (!ctx || ctx.user.clientId || !ctx.can(def.permission, 'read')) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   const url = new URL(req.url)
   const filters: Record<string, string | undefined> = {}
   for (const f of def.filters) filters[f.name] = url.searchParams.get(f.name) ?? undefined
