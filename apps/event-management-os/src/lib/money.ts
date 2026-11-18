@@ -18,6 +18,7 @@ export function formatMoney(cents: number | null | undefined, currency = 'EUR', 
     style: 'currency',
     currency,
     notation: opts.compact ? 'compact' : 'standard',
+    minimumFractionDigits: opts.compact || cents % 100 === 0 ? 0 : 2,
     maximumFractionDigits: opts.compact ? 1 : cents % 100 === 0 ? 0 : 2,
   }).format(cents / 100)
 }

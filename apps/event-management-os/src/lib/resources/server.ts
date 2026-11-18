@@ -1,6 +1,6 @@
 import 'server-only'
 import { z } from 'zod'
-import type { Prisma, PrismaClient } from '@prisma/client'
+import { Prisma, type PrismaClient } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import type { Ctx } from '@/lib/auth/context'
 import { toCents } from '@/lib/money'
@@ -216,15 +216,28 @@ export function buildListQuery(ctx: Ctx, def: ResourceDef, params: ListParams) {
   const dir = sd === 'asc' || sd === 'desc' ? sd : def.defaultSort.dir
   const pageSize = Math.min(100, Math.max(5, params.pageSize ?? 25))
   const page = Math.max(1, params.page ?? 1)
+  const nullable = isNullable(def.model, field)
   return {
     where,
-    orderBy: [{ [field]: { sort: dir, nulls: 'last' } }, { createdAt: 'desc' }] as unknown,
+    orderBy: [{ [field]: nullable ? { sort: dir, nulls: 'last' } : dir }, { createdAt: 'desc' }] as unknown,
     skip: (page - 1) * pageSize,
     take: pageSize,
     page,
     pageSize,
     sort: `${field}.${dir}`,
   }
+}
+
+const nullableCache = new Map<string, boolean>()
+/** Uses Prisma's DMMF to know whether `nulls: last` is allowed on a sort column. */
+function isNullable(model: string, field: string) {
+  const key = `${model}.${field}`
+  if (!nullableCache.has(key)) {
+    const m = Prisma.dmmf.datamodel.models.find((x) => x.name.toLowerCase() === model.toLowerCase())
+    const f = m?.fields.find((x) => x.name === field)
+    nullableCache.set(key, f ? !f.isRequired : false)
+  }
+  return nullableCache.get(key)!
 }
 
 export async function listRecords<T = Record<string, unknown>>(ctx: Ctx, def: ResourceDef, params: ListParams, include?: Record<string, unknown>) {
